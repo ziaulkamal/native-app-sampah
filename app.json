@@ -1,0 +1,82 @@
+{
+  "expo": {
+    "name": "Sampah App",
+    "slug": "native-app-sampah",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "sampahapp",
+    "userInterfaceStyle": "automatic",
+    "platforms": ["android"],
+    "android": {
+      "package": "id.go.acehbaratdaya.sampah",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#EDEBE4"
+      },
+      "permissions": ["android.permission.CAMERA", "android.permission.INTERNET"],
+      "blockedPermissions": ["android.permission.SYSTEM_ALERT_WINDOW", "android.permission.VIBRATE"]
+    },
+    "plugins": [
+      "expo-dev-client",
+      "expo-secure-store",
+      [
+        "expo-font",
+        {
+          "//": "Bentuk berkelompok, bukan daftar path datar: Android hanya bisa memetakan fontWeight ke berkas yang benar bila keluarganya didaftarkan begini. Dengan daftar datar, `font-bold` di NativeWind akan menebalkan Regular secara sintetis dan huruf tebalnya terlihat berbeda dari web.",
+          "android": {
+            "fonts": [
+              {
+                "fontFamily": "PlusJakartaSans",
+                "fontDefinitions": [
+                  { "path": "./assets/fonts/PlusJakartaSans-Regular.ttf", "weight": 400 },
+                  { "path": "./assets/fonts/PlusJakartaSans-Medium.ttf", "weight": 500 },
+                  { "path": "./assets/fonts/PlusJakartaSans-SemiBold.ttf", "weight": 600 },
+                  { "path": "./assets/fonts/PlusJakartaSans-Bold.ttf", "weight": 700 },
+                  { "path": "./assets/fonts/PlusJakartaSans-ExtraBold.ttf", "weight": 800 }
+                ]
+              },
+              {
+                "fontFamily": "JetBrainsMono",
+                "fontDefinitions": [
+                  { "path": "./assets/fonts/JetBrainsMono-Regular.ttf", "weight": 400 }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "//": "expo-camera, bukan VisionCamera: alur OCR hanya butuh satu jepretan, sedangkan nilai VisionCamera ada di frame processor yang sengaja tak dipakai. VisionCamera 5 juga tak lagi menyertakan config plugin Expo. `recordAudioAndroid` dan `barcodeScannerEnabled` dimatikan supaya izin mikrofon dan pustaka pemindai barcode tidak ikut masuk APK — pindai QR di luar lingkup.",
+          "cameraPermission": "Aplikasi memerlukan kamera untuk memindai KTP saat melengkapi biodata.",
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "//": "`microphonePermission: false` bukan sekadar tak meminta: plugin ini memblokir RECORD_AUDIO, yang kalau dibiarkan ikut masuk manifest walau aplikasi tak pernah merekam video.",
+          "photosPermission": "Aplikasi memerlukan akses galeri untuk memilih foto KTP dan foto profil.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26,
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "//": "Alamat backend dibaca runtime lewat src/api/config.ts. Nilai di sini adalah cadangan untuk build lokal; produksi menyuntiknya lewat EAS env / app.config.",
+      "apiBaseUrl": "http://10.0.2.2:8000",
+      "apiClientKey": ""
+    }
+  }
+}

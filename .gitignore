@@ -1,0 +1,28 @@
+node_modules
+.expo
+dist
+web-build
+
+# Hasil `expo prebuild` — proyek native digenerate ulang dari app.json/app.config.js.
+# Commit keduanya hanya bila mulai menyunting kode Android langsung (alur "bare").
+/android
+/ios
+
+# TypeScript build artefak
+*.tsbuildinfo
+
+.env
+.env.*
+!.env.example
+
+*.keystore
+!debug.keystore
+*.apk
+*.aab
+
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+npm-debug.*
+pnpm-debug.log*
+yarn-error.*

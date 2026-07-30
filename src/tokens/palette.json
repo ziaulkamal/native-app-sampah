@@ -1,0 +1,39 @@
+{
+  "$comment": "SUMBER KEBENARAN TUNGGAL design token. Kunci = nama CSS variable (kebab-case) supaya global.css bisa digenerate apa adanya oleh scripts/gen-theme.mjs. Nilai disalin dari ../design-app-sampah (src/index.css + tailwind.config.ts). Jangan sunting global.css langsung — ia hasil generate.",
+  "light": {
+    "bg": "#EDEBE4",
+    "surface": "#FFFFFF",
+    "surface-2": "#F6F5F0",
+    "text": "#1B1B18",
+    "text-dim": "#8C8C85",
+    "olive": "#5A6A1E",
+    "olive-deep": "#3C4715",
+    "lime": "#C9E24A",
+    "pill": "#F2F0EA",
+    "border": "#ECEAE3",
+    "ph": "#E6E3DA",
+    "ph2": "#EEEBE3",
+    "nav": "#FFFFFF"
+  },
+  "dark": {
+    "bg": "#141410",
+    "surface": "#201F17",
+    "surface-2": "#2A281F",
+    "text": "#F1EFE8",
+    "text-dim": "#9C9A8E",
+    "olive": "#A6B84B",
+    "olive-deep": "#3C4715",
+    "lime": "#C9E24A",
+    "pill": "#2A281F",
+    "border": "#33301F",
+    "ph": "#2C2A20",
+    "ph2": "#35332A",
+    "nav": "#1B1A13"
+  },
+  "semantic": {
+    "success": "#3F8F52",
+    "warning": "#C9922E",
+    "danger": "#C0562E",
+    "info": "#2A6F8A"
+  }
+}

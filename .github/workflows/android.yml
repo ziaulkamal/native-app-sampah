@@ -1,0 +1,110 @@
+# Membangun APK Android di runner GitHub, karena mesin pengembang tidak punya
+# JDK maupun Android SDK. Runner `ubuntu-latest` sudah membawa keduanya.
+#
+# `android/` tidak ada di git (lihat .gitignore) — ia dicetak ulang oleh `expo prebuild`
+# di setiap jalannya. Itu memang alur yang benar: sumber kebenaran proyek native adalah
+# `app.json` + `app.config.js`, bukan folder hasil generate yang gampang basi.
+
+name: Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      variant:
+        description: 'Varian build'
+        type: choice
+        default: release
+        options: [release, debug]
+      api_base_url:
+        description: 'Origin backend yang dibekukan ke APK (kosong = pakai nilai app.json)'
+        type: string
+        default: ''
+      allow_cleartext:
+        description: 'Izinkan HTTP polos — hanya bila backend belum punya TLS'
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    # Hanya berkas yang benar-benar mengubah hasil build. Perubahan dokumen tidak
+    # perlu menghabiskan 20 menit runner.
+    paths:
+      - 'src/**'
+      - 'assets/**'
+      - 'app.json'
+      - 'app.config.js'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'index.ts'
+      - 'App.tsx'
+      - 'babel.config.js'
+      - 'metro.config.js'
+      - 'tailwind.config.js'
+      - '.github/workflows/android.yml'
+
+# Push beruntun membatalkan build yang belum selesai; yang penting hanya commit terakhir.
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        # Tanpa `version`: diambil dari field `packageManager` di package.json,
+        # supaya CI dan mesin lokal tak bisa diam-diam berbeda versi pnpm.
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - run: pnpm install --frozen-lockfile
+
+      # Dijalankan sebelum Gradle dengan sengaja: keduanya butuh < 1 menit, sedangkan
+      # build native butuh belasan. Gagal di sini jauh lebih murah.
+      - name: Periksa tipe & penyimpangan token
+        run: |
+          pnpm typecheck
+          pnpm check:drift
+
+      - name: Cetak proyek native
+        env:
+          API_BASE_URL: ${{ inputs.api_base_url || vars.API_BASE_URL }}
+          API_CLIENT_KEY: ${{ secrets.API_CLIENT_KEY }}
+          ANDROID_ALLOW_CLEARTEXT: ${{ inputs.allow_cleartext && '1' || vars.ANDROID_ALLOW_CLEARTEXT }}
+          # Nomor jalan workflow, supaya dua APK tak pernah bernomor sama.
+          ANDROID_VERSION_CODE: ${{ github.run_number }}
+        run: pnpm exec expo prebuild --platform android --no-install
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build APK
+        working-directory: android
+        run: ./gradlew ${{ (inputs.variant || 'release') == 'debug' && 'assembleDebug' || 'assembleRelease' }} --no-daemon
+
+      - name: Kumpulkan APK
+        id: collect
+        run: |
+          apk=$(find android/app/build/outputs/apk -name '*.apk' | head -1)
+          echo "Ditemukan: $apk"
+          echo "path=$apk" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sampah-${{ inputs.variant || 'release' }}-${{ github.run_number }}
+          path: ${{ steps.collect.outputs.path }}
+          # 90 hari bawaan hanya menumpuk artefak yang tak pernah diunduh lagi.
+          retention-days: 14
+          if-no-files-found: error
