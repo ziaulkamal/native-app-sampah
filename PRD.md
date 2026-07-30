@@ -581,7 +581,8 @@ Reanimated 4 menuntut `react-native-worklets` (bukan `-core` yang namanya mirip)
 dan ML Kit menarik ketergantungan Android sendiri. Satu paket yang naik versi bisa memecahkan
 build native — yang gagalnya di Gradle, bukan di TypeScript, dan jauh lebih lama dilacak.
 
-Risiko ini **sudah terbukti dua kali** saat M1 dijalankan, dan keduanya terbaca sebelum Gradle:
+Risiko ini **sudah terbukti tiga kali** saat M1 dijalankan; dua yang pertama terbaca sebelum
+Gradle, yang ketiga hanya muncul saat build sungguhan:
 
 - **VisionCamera 5 dilepas.** Versi 5 tak lagi menyertakan config plugin Expo (`expo install`
   melaporkan "Cannot find module …/lib/VisionCamera"), jadi `prebuild` akan gagal. Diganti
@@ -590,6 +591,17 @@ Risiko ini **sudah terbukti dua kali** saat M1 dijalankan, dan keduanya terbaca 
   `expo-modules-core` menuntut ≤ 0.10; dua salinan modul native di satu build adalah kegagalan
   Gradle yang tak menyebut sebabnya. `pnpm fix:versions` menurunkannya ke 0.10.1 dan
   menyeragamkan reanimated ke 4.5.1 — `pnpm why` kini melaporkan satu versi untuk keduanya.
+- **`node_modules` pnpm yang ketat mematahkan Metro.** Build CI pertama gagal di
+  `:app:createBundleReleaseJsAndAssets` setelah 20 menit. Sebabnya bukan Gradle: preset Babel
+  NativeWind menunjuk `react-native-css-interop`, dependensi **transitif** milik `nativewind`
+  yang karena itu tak ada di `node_modules` akar — dan Metro me-resolve dari akar proyek.
+  Ditambal `.npmrc` berisi `node-linker=hoisted` (setelan yang memang disarankan dokumentasi
+  Expo untuk pnpm). `pnpm-lock.yaml` tidak berubah, jadi `--frozen-lockfile` di CI tetap sah.
+
+**Pelajaran yang mengubah cara kerja:** kegagalan ini terbaca **tanpa** Android SDK lewat
+`pnpm exec expo export --platform android` — perintah itu menjalankan Metro yang sama dengan
+`createBundleReleaseJsAndAssets`, tetapi selesai dalam ~70 detik alih-alih 20 menit. Jalankan
+itu dulu setiap kali dependensi berubah, sebelum mengantre runner.
 
 **Mitigasi:** versi dipatok di `package.json`; `pnpm doctor` (expo-doctor) dan
 `pnpm fix:versions` disediakan sebagai perintah baku; `minSdkVersion 26` dipilih karena itu

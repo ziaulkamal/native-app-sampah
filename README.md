@@ -66,6 +66,7 @@ Store. Lihat `PRD.md` §6.6 dan §11.8.
 | `pnpm gen:theme`    | Bangkitkan `global.css` dari `src/tokens/palette.json`.                        |
 | `pnpm check:theme`  | Gagal bila `global.css` tak sesuai palet (untuk CI).                           |
 | `pnpm check:drift`  | Bandingkan palet dengan `../design-app-sampah`; deteksi token yang menyimpang. |
+| `pnpm check:bundle` | Metro yang sama dengan build release, ~70 detik — jalankan sebelum antre CI.   |
 | `pnpm doctor`       | `expo-doctor` — periksa kecocokan versi paket.                                 |
 | `pnpm fix:versions` | `expo install --fix` — samakan versi paket dengan SDK.                         |
 

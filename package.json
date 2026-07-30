@@ -14,6 +14,7 @@
     "gen:theme": "node scripts/gen-theme.mjs",
     "check:theme": "node scripts/gen-theme.mjs --check",
     "check:drift": "node scripts/gen-theme.mjs --drift",
+    "check:bundle": "expo export --platform android --output-dir .expo/bundle-check",
     "doctor": "expo-doctor",
     "fix:versions": "expo install --fix"
   },
