@@ -74,8 +74,8 @@
       ]
     ],
     "extra": {
-      "//": "Alamat backend dibaca runtime lewat src/api/config.ts. Nilai di sini adalah cadangan untuk build lokal; produksi menyuntiknya lewat EAS env / app.config.",
-      "apiBaseUrl": "http://10.0.2.2:8000",
+      "//": "Origin saja — `src/api/config.ts` yang menambahkan prefix `/api/v1`. Nilai ini dipakai bila `API_BASE_URL` tak disetel; `.env` lokal menimpanya untuk menunjuk emulator.",
+      "apiBaseUrl": "https://simudah.acehbaratdayakab.go.id",
       "apiClientKey": ""
     }
   }

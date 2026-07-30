@@ -448,18 +448,24 @@ ikut ter-commit akan diam-diam menyimpang darinya.
 
 Tiga hal yang dibekukan saat build dan karenanya disuntik lewat env di `app.config.js`:
 
-| Variabel                  | Sumber di CI                       | Kalau kosong                                              |
-| ------------------------- | ---------------------------------- | --------------------------------------------------------- |
-| `API_BASE_URL`            | input workflow, atau repo variable | nilai `app.json` (`http://10.0.2.2:8000` — emulator saja) |
-| `API_CLIENT_KEY`          | repo secret                        | kosong; gerbang klien backend nonaktif                    |
-| `ANDROID_ALLOW_CLEARTEXT` | input workflow                     | HTTP polos **diblokir** di varian release                 |
-| `ANDROID_VERSION_CODE`    | `github.run_number`                | `1`                                                       |
+| Variabel                  | Sumber di CI                       | Kalau kosong                                                           |
+| ------------------------- | ---------------------------------- | ---------------------------------------------------------------------- |
+| `API_BASE_URL`            | input workflow, atau repo variable | nilai `app.json` — `https://simudah.acehbaratdayakab.go.id` (produksi) |
+| `API_CLIENT_KEY`          | repo secret                        | kosong; gerbang klien backend nonaktif                                 |
+| `ANDROID_ALLOW_CLEARTEXT` | input workflow                     | HTTP polos **diblokir** di varian release                              |
+| `ANDROID_VERSION_CODE`    | `github.run_number`                | `1`                                                                    |
 
 `ANDROID_ALLOW_CLEARTEXT` ada karena template Expo hanya membuka HTTP polos untuk varian
 **debug**. Tanpa sakelar ini, APK release yang menunjuk backend `http://` gagal total tanpa
 pesan yang menyebut sebabnya — kegagalan yang mahal dilacak. Ia sengaja bukan bawaan:
 menyalakannya berarti token bearer melintas terbuka, jadi hanya pantas untuk uji lapangan
-sebelum backend punya TLS.
+sebelum backend punya TLS. **Untuk produksi ia tidak diperlukan**: backend sudah HTTPS.
+
+Bawaan `extra.apiBaseUrl` di `app.json` adalah **produksi**, bukan alamat emulator. Alasannya:
+APK yang keluar dari CI adalah artefak yang dibagikan, dan yang paling berbahaya di sana bukan
+"lupa menyetel variabel" melainkan "APK beredar sambil menunjuk `10.0.2.2` dan gagal diam-diam
+di setiap ponsel". Pengembang lokal yang ingin menunjuk emulator menyatakannya lewat `.env` —
+lihat `.env.example`.
 
 **Batas yang harus disadari:** APK release dari workflow ini ditandatangani dengan
 **debug keystore** — itu bawaan template Expo, dan APK-nya memang bisa dipasang serta berjalan
@@ -674,8 +680,10 @@ Butuh keputusan pengguna sebelum milestone yang bersangkutan bisa ditutup.
    pencopotan aplikasi lama di tiap perangkat. Makin cepat diputuskan, makin sedikit perangkat
    yang harus dibersihkan. `versionCode` sudah tidak menunggu jawaban ini: ia diambil dari
    nomor jalan workflow.
-9. **Alamat backend staging dan produksi.** Dibutuhkan sebelum build pertama yang dibagikan
-   (§6.4 T2 — satu APK terikat satu alamat).
+9. **Alamat backend.** **Produksi terjawab 31 Jul 2026: `https://simudah.acehbaratdayakab.go.id`**
+   (TLS sah; `GET /api/v1/me` membalas 401 dengan envelope `{success, message, code}` yang benar).
+   Sudah jadi bawaan `app.json`. Yang **belum** terjawab: apakah ada **staging** terpisah —
+   tanpa itu, tiap uji lapangan menyentuh data sungguhan (§6.4 T2 — satu APK terikat satu alamat).
 10. **Nama, ikon, dan splash aplikasi.** Sekarang memakai nama sementara "Sampah App" dan ikon
     bawaan; keduanya perlu aset resmi dinas sebelum rilis.
 11. ~~**Enam berkas font.**~~ **Selesai 31 Jul 2026** — keenamnya sudah diunduh dari repo hulu

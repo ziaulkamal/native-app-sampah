@@ -31,8 +31,10 @@ pnpm check:drift          # pastikan token warna masih sama dengan FE web
 pnpm prebuild             # generate folder android/ dari app.json + app.config.js
 ```
 
-`API_BASE_URL` **ikut tersegel di dalam APK** — mengganti alamat backend berarti build
-ulang. Emulator memakai `http://10.0.2.2:8000` untuk `localhost` mesin host.
+`API_BASE_URL` **ikut tersegel di dalam APK** — mengganti alamat backend berarti build ulang.
+Tanpa `.env`, build memakai bawaan `app.json`: **`https://simudah.acehbaratdayakab.go.id`**
+(produksi). Isi `.env` bila Anda ingin menunjuk emulator (`http://10.0.2.2:8000`) atau server
+lokal — nilainya **origin saja**, tanpa `/api/v1`, yang dipasang klien sendiri.
 
 ## Menjalankan
 
