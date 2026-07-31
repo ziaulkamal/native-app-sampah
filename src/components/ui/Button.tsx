@@ -11,6 +11,8 @@ interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> {
   full?: boolean;
   /** Ikon di kiri label, mis. <Icon name="plus" size={16} color="#fff" />. */
   icon?: React.ReactNode;
+  /** Ikon di kanan label — penunjuk arah ("lanjut"), bukan penanda jenis aksi. */
+  iconRight?: React.ReactNode;
   className?: string;
 }
 
@@ -52,6 +54,7 @@ export function Button({
   size = 'md',
   full,
   icon,
+  iconRight,
   className = '',
   disabled,
   ...rest
@@ -75,6 +78,7 @@ export function Button({
     >
       {icon !== undefined && <View>{icon}</View>}
       <Text className={`font-sans font-bold ${label[variant]} ${labelSize[size]}`}>{text}</Text>
+      {iconRight !== undefined && <View>{iconRight}</View>}
     </Pressable>
   );
 }

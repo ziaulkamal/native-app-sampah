@@ -1,12 +1,12 @@
 import { useCallback, useRef, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
-import TextRecognition from '@react-native-ml-kit/text-recognition';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useApp } from '@/store/AppContext';
-import { parseKtp, type KtpScan } from './ktpParser';
+import type { KtpScan } from './ktpParser';
+import { recognizeKtp } from './recognizeKtp';
 import { setLastScan } from './scanBridge';
 
 /**
@@ -36,8 +36,7 @@ export function ScanKtpScreen() {
     try {
       // `quality: 1` — teks kecil di KTP yang paling dulu hancur oleh kompresi JPEG.
       const photo = await camera.current.takePictureAsync({ quality: 1, exif: false });
-      const result = await TextRecognition.recognize(photo.uri);
-      const parsed: KtpScan = parseKtp(result.text);
+      const parsed: KtpScan = await recognizeKtp(photo.uri);
 
       // Tanpa NIK hasilnya tak berguna: nama masih harus diketik, dan mengisi form
       // dengan tebakan separuh lebih menyesatkan daripada membiarkannya kosong.
@@ -48,7 +47,9 @@ export function ScanKtpScreen() {
         );
         return;
       }
-      setLastScan(parsed);
+      // Fotonya ikut dititipkan: yang dipindai dan yang diunggah adalah gambar yang sama,
+      // jadi tak perlu memotret KTP dua kali.
+      setLastScan(parsed, photo.uri);
       navigation.goBack();
     } catch (cause) {
       notifyFail('Gagal membaca KTP', cause);

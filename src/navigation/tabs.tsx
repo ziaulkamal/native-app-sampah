@@ -1,5 +1,9 @@
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import {
+  createBottomTabNavigator,
+  type BottomTabBarButtonProps,
+} from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Pressable, View } from 'react-native';
 import { NotificationBell } from '@/features/notifikasi/NotificationBell';
 import { OperatorHome } from '@/features/operator/OperatorHome';
 import { OperatorPenagihan } from '@/features/operator/OperatorPenagihan';
@@ -16,7 +20,7 @@ import { AkunScreen } from '@/features/shared/AkunScreen';
 import { ProfilScreen } from '@/features/shared/ProfilScreen';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { useTheme } from '@/theme/ThemeProvider';
-import { colors, typography } from '@/tokens/tokens';
+import { colors, shadows, typography } from '@/tokens/tokens';
 import type {
   OperatorBerandaParams,
   OperatorPenagihanParams,
@@ -62,6 +66,37 @@ const tabIcon =
   (name: IconName) =>
   ({ color }: { color: string }) => <Icon name={name} size={23} color={color} />;
 
+/**
+ * Tombol bulat terangkat di tengah bilah tab.
+ *
+ * Ia mengganti seluruh isi satu kursi tab, bukan menumpang di atasnya: tombol melayang
+ * yang digambar di luar navigator akan menutupi isi layar di tiap tab, sedangkan yang
+ * ini ikut menghilang bersama bilahnya saat papan ketik naik.
+ */
+function FabTabButton({ onPress, accessibilityLabel }: BottomTabBarButtonProps) {
+  const { mode } = useTheme();
+  const dark = mode === 'dark';
+
+  return (
+    <View className="w-[78px] items-center justify-start">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        onPress={onPress}
+        className={`-mt-[30px] h-[60px] w-[60px] items-center justify-center rounded-full border-[5px] ${
+          dark ? 'bg-lime' : 'bg-olive'
+        }`}
+        // Garis tepinya sewarna bilah tab, bukan putih tetap: itu yang membuat
+        // lingkarannya terbaca sebagai terangkat, bukan sebagai tambalan putih di gelap.
+        style={[{ borderColor: colors[mode].nav }, shadows.pop]}
+      >
+        {/* 1d: di gelap tombolnya dibalik — isi lime, ikon gelap. */}
+        <Icon name="wallet" size={24} color={dark ? colors.light.text : colors[mode].lime} />
+      </Pressable>
+    </View>
+  );
+}
+
 // --- Pelanggan ---
 
 const PelangganBerandaStack = createNativeStackNavigator<PelangganBerandaParams>();
@@ -99,15 +134,31 @@ export function PelangganTabs() {
   const options = useTabScreenOptions();
   return (
     <PelangganTab.Navigator screenOptions={options}>
+      {/* Beranda tanpa header: kepala bermereknya sendiri yang memuat sapaan, nominal,
+          dan lonceng — dua kepala bertumpuk hanya menyisakan setengah layar untuk isi. */}
       <PelangganTab.Screen
         name="Beranda"
         component={BerandaPelanggan}
-        options={{ tabBarIcon: tabIcon('home') }}
+        options={{ tabBarIcon: tabIcon('home'), headerShown: false }}
       />
       <PelangganTab.Screen
         name="Tagihan"
         component={TagihanPelanggan}
         options={{ tabBarIcon: tabIcon('receipt') }}
+      />
+      <PelangganTab.Screen
+        name="Bayar"
+        component={FabSlot}
+        options={{ tabBarButton: FabTabButton, tabBarAccessibilityLabel: 'Bayar tagihan' }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.navigate('Tagihan', {
+              screen: 'PelangganTagihan',
+              params: { pay: true },
+            });
+          },
+        })}
       />
       <PelangganTab.Screen
         name="Jadwal"
@@ -162,12 +213,23 @@ export function OperatorTabs() {
       <OperatorTab.Screen
         name="Beranda"
         component={BerandaOperator}
-        options={{ tabBarIcon: tabIcon('home') }}
+        options={{ tabBarIcon: tabIcon('home'), headerShown: false }}
       />
       <OperatorTab.Screen
         name="Rute"
         component={RuteOperator}
         options={{ tabBarIcon: tabIcon('route') }}
+      />
+      <OperatorTab.Screen
+        name="Catat"
+        component={FabSlot}
+        options={{ tabBarButton: FabTabButton, tabBarAccessibilityLabel: 'Catat pembayaran' }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.navigate('Tagih', { screen: 'OperatorPenagihan' });
+          },
+        })}
       />
       <OperatorTab.Screen
         name="Tagih"
@@ -184,6 +246,9 @@ export function OperatorTabs() {
 }
 
 // --- Bersama ---
+
+/** Isi kursi tombol tengah. Tak pernah tergambar: ketukannya dibelokkan sebelum fokus. */
+const FabSlot = () => null;
 
 const Profil = createNativeStackNavigator<ProfilStackParams>();
 

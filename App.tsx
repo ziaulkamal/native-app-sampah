@@ -1,3 +1,4 @@
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AlertHost } from '@/components/ui/Alert';
@@ -6,6 +7,11 @@ import { RootNavigator } from '@/navigation/RootNavigator';
 import { AppProvider } from '@/store/AppContext';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 import './global.css';
+
+// Splash native ditahan sampai layar JS pertama benar-benar tergambar (lihat
+// `RootNavigator`), lalu memudar — tanpa ini ada satu frame kosong di antaranya.
+void SplashScreen.preventAutoHideAsync();
+SplashScreen.setOptions({ duration: 320, fade: true });
 
 /**
  * Akar aplikasi — padanan `App.tsx` + `main.tsx` web.

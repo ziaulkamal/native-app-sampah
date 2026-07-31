@@ -1,3 +1,4 @@
+import { useState, type ReactNode } from 'react';
 import { Pressable, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -9,30 +10,64 @@ type AuthFieldProps = {
   hint?: string;
   /** Galat per-field dari 422. Web menitipkannya lewat `hint`; di sini punya slot sendiri. */
   error?: string;
+  /** `inset` = kolom cekung di dalam kartu putih; `card` = kartu berdiri sendiri. */
+  tone?: 'card' | 'inset';
 } & Omit<TextInputProps, 'style' | 'className'>;
 
 /** Field input berlabel dengan ikon opsional — gaya kartu auth. */
-export function AuthField({ label, icon, hint, error, ...rest }: AuthFieldProps) {
+export function AuthField({
+  label,
+  icon,
+  hint,
+  error,
+  tone = 'card',
+  onFocus,
+  onBlur,
+  ...rest
+}: AuthFieldProps) {
   const { mode } = useTheme();
+  const [focused, setFocused] = useState(false);
   const message = error ?? hint;
+  const inset = tone === 'inset';
+
+  // Lebar border tak pernah berubah, hanya warnanya: border RN digambar di dalam kotak,
+  // jadi memunculkannya saat fokus akan menggeser isi 1px tiap papan ketik dibuka.
+  const line =
+    error !== undefined ? 'border-danger' : focused && inset ? 'border-olive' : 'border-line';
 
   return (
     <View className="mb-3.5">
       <Text className="mb-2 font-sans text-[12.5px] font-semibold text-ink">{label}</Text>
-      {/* Tanpa garis fokus: border RN digambar di dalam kotak, jadi memunculkannya
-          saat fokus menggeser isi 1px tiap kali papan ketik dibuka. */}
       <View
-        className={`h-[52px] flex-row items-center gap-2.5 rounded-[14px] bg-surface px-[15px] ${
-          error !== undefined ? 'border border-danger' : ''
-        }`}
-        style={shadows.card}
+        className={
+          inset
+            ? `h-[56px] flex-row items-center gap-2.5 rounded-[14px] border-[1.5px] bg-surface2 px-[15px] ${line}`
+            : `h-[52px] flex-row items-center gap-2.5 rounded-[14px] bg-surface px-[15px] ${
+                error !== undefined ? 'border border-danger' : ''
+              }`
+        }
+        style={inset ? undefined : shadows.card}
       >
-        {icon !== undefined && <Icon name={icon} size={18} color={colors[mode]['text-dim']} />}
+        {icon !== undefined && (
+          <Icon
+            name={icon}
+            size={18}
+            color={focused && inset ? colors[mode].olive : colors[mode]['text-dim']}
+          />
+        )}
         <TextInput
           {...rest}
           accessibilityLabel={label}
           placeholderTextColor={colors[mode]['text-dim']}
           selectionColor={colors[mode].olive}
+          onFocus={(e) => {
+            setFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            onBlur?.(e);
+          }}
           className="h-full flex-1 font-sans text-[14px] text-ink"
         />
       </View>
@@ -45,6 +80,37 @@ export function AuthField({ label, icon, hint, error, ...rest }: AuthFieldProps)
           {message}
         </Text>
       )}
+    </View>
+  );
+}
+
+/** Kartu putih tempat formulir berdiri, mengambang di atas latar. */
+export function AuthCard({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return (
+    <View className={`rounded-[22px] bg-surface px-5 py-[22px] ${className}`} style={shadows.pop}>
+      {children}
+    </View>
+  );
+}
+
+/** Pemisah dua jalur setara, mis. "atau". */
+export function AuthDivider({ label }: { label: string }) {
+  return (
+    <View className="my-3.5 flex-row items-center gap-3">
+      <View className="h-px flex-1 bg-line" />
+      <Text className="font-sans text-[11.5px] text-dim">{label}</Text>
+      <View className="h-px flex-1 bg-line" />
+    </View>
+  );
+}
+
+/** Keterangan netral berikon di luar kartu formulir. */
+export function AuthInfo({ children }: { children: ReactNode }) {
+  const { mode } = useTheme();
+  return (
+    <View className="flex-row gap-2.5 rounded-[16px] border border-line bg-surface2 px-4 py-3.5">
+      <Icon name="info" size={16} color={colors[mode]['text-dim']} />
+      <Text className="flex-1 font-sans text-[11.5px] leading-snug text-dim">{children}</Text>
     </View>
   );
 }

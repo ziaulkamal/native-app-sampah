@@ -14,7 +14,7 @@ import { NotificationSheet } from './NotificationSheet';
  * Prop `variant` web dilepas: di ponsel hanya ada satu cara panel ini muncul, dan
  * dropdown-nya memang tak ikut diporting (lihat docs/MAPPING.md §4).
  */
-export function NotificationBell() {
+export function NotificationBell({ onHero = false }: { onHero?: boolean }) {
   const { notifications, refreshNotifications } = useApp();
   const { mode } = useTheme();
   const [open, setOpen] = useState(false);
@@ -31,22 +31,29 @@ export function NotificationBell() {
   };
 
   return (
-    <View className="mr-3 flex-none">
+    <View className={onHero ? 'flex-none' : 'mr-3 flex-none'}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={unread === 0 ? 'Notifikasi' : `Notifikasi, ${unread} belum dibaca`}
         onPress={show}
         hitSlop={8}
-        className="h-10 w-10 items-center justify-center rounded-full bg-pill"
+        className={`h-10 w-10 items-center justify-center rounded-full ${
+          onHero ? 'border border-white/25' : 'bg-pill'
+        }`}
       >
-        <Icon name="bell" size={20} color={colors[mode].text} />
-        {unread > 0 && (
-          <View className="absolute -right-0.5 -top-0.5 h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger px-1">
-            <Text className="font-sans text-[10px] font-bold text-white">
-              {unread > 99 ? '99+' : unread}
-            </Text>
-          </View>
-        )}
+        <Icon name="bell" size={20} color={onHero ? '#FFFFFF' : colors[mode].text} />
+        {/* Di kepala yang penuh warna, angka merah kecil hilang: di sana penanda
+            belum-dibaca cukup satu titik lime, jumlahnya toh ada di dalam panelnya. */}
+        {unread > 0 &&
+          (onHero ? (
+            <View className="absolute right-1 top-1.5 h-[9px] w-[9px] rounded-full bg-lime" />
+          ) : (
+            <View className="absolute -right-0.5 -top-0.5 h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger px-1">
+              <Text className="font-sans text-[10px] font-bold text-white">
+                {unread > 99 ? '99+' : unread}
+              </Text>
+            </View>
+          ))}
       </Pressable>
       <NotificationSheet open={open} loading={loading} onClose={() => setOpen(false)} />
     </View>

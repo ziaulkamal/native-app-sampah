@@ -1,6 +1,16 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { ActivityIndicator, Text, View } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
+import { useEffect } from 'react';
+import { Text, View } from 'react-native';
+import Animated, {
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import { DocumentViewer } from '@/features/dokumen/DocumentViewer';
 import { ScanKtpScreen } from '@/features/ocr/ScanKtpScreen';
 import { BrandMark } from '@/features/shared/BrandMark';
@@ -31,7 +41,7 @@ export function RootNavigator() {
   if (!booted) return <BootSplash />;
 
   return (
-    <NavigationContainer theme={navTheme(mode)}>
+    <NavigationContainer theme={navTheme(mode)} onReady={hideNativeSplash}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!authed || (role !== 'pelanggan' && role !== 'operator') ? (
           <Stack.Screen name="Auth" component={AuthStack} />
@@ -61,16 +71,104 @@ export function RootNavigator() {
   );
 }
 
-/** Layar tunggu selama token tersimpan diperiksa. Padanan `auth/BootSplash.tsx` web. */
+/** Menutup splash native; aman dipanggil dua kali karena bisa sudah tertutup duluan. */
+function hideNativeSplash() {
+  void SplashScreen.hideAsync().catch(() => undefined);
+}
+
+const TRACK = 128;
+const PILL = 44;
+
+/**
+ * Layar tunggu selama token tersimpan diperiksa. Padanan `auth/BootSplash.tsx` web.
+ *
+ * Ia sengaja melanjutkan splash native, bukan menggantinya: lambang di posisi yang sama
+ * lalu tumbuh sedikit, sehingga peralihan dari gambar statis Android ke layar React
+ * terbaca sebagai satu gerakan. Splash native baru ditutup di `onLayout` — sesudah frame
+ * ini benar-benar terukur, bukan sebelumnya.
+ */
 function BootSplash() {
   const { mode } = useTheme();
+  const enter = useSharedValue(0);
+  const pulse = useSharedValue(0);
+  const slide = useSharedValue(0);
+
+  useEffect(() => {
+    enter.value = withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) });
+    // Dua irama terpisah: denyut lambat untuk lambangnya, ulang-alik cepat untuk bilahnya.
+    pulse.value = withRepeat(
+      withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.quad) }),
+      -1,
+      true,
+    );
+    slide.value = withRepeat(
+      withTiming(1, { duration: 950, easing: Easing.inOut(Easing.cubic) }),
+      -1,
+      true,
+    );
+  }, [enter, pulse, slide]);
+
+  const markStyle = useAnimatedStyle(() => ({
+    opacity: enter.value,
+    transform: [{ scale: interpolate(enter.value, [0, 1], [0.82, 1]) * (1 + pulse.value * 0.03) }],
+  }));
+
+  // Lingkaran denyut di belakang lambang — membesar sambil memudar habis, jadi ia tak
+  // pernah menabrak tepi lambangnya sendiri.
+  const haloStyle = useAnimatedStyle(() => ({
+    opacity: enter.value * interpolate(pulse.value, [0, 1], [0.2, 0]),
+    transform: [{ scale: interpolate(pulse.value, [0, 1], [1, 1.55]) }],
+  }));
+
+  const barStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: interpolate(slide.value, [0, 1], [0, TRACK - PILL]) }],
+  }));
+
+  const textStyle = useAnimatedStyle(() => ({
+    opacity: enter.value,
+    transform: [{ translateY: interpolate(enter.value, [0, 1], [10, 0]) }],
+  }));
+
   return (
-    <View className="flex-1 items-center justify-center gap-4 bg-bg">
-      {/* Layar ini kosong selain lambangnya, jadi ia boleh paling besar di antara
-          ketiga penempatan BrandMark — tak ada apa pun di sekelilingnya yang ia saingi. */}
-      <BrandMark className="h-16 w-16 rounded-[19px] bg-olive" iconSize={36} color="#FFFFFF" />
-      <ActivityIndicator color={colors[mode].olive} />
-      <Text className="font-sans text-[13px] font-semibold text-dim">Memuat sesi…</Text>
+    <View className="flex-1 items-center justify-center gap-7 bg-bg" onLayout={hideNativeSplash}>
+      {/* Komponen Animated tak ikut transform NativeWind, jadi bagian yang bergerak
+          memakai `style` + token mentah; className tetap dipakai di pembungkus biasa. */}
+      <View className="items-center justify-center">
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            { position: 'absolute', height: 64, width: 64, borderRadius: 999 },
+            { backgroundColor: colors[mode].olive },
+            haloStyle,
+          ]}
+        />
+        {/* Layar ini kosong selain lambangnya, jadi ia boleh paling besar di antara
+            ketiga penempatan BrandMark — tak ada apa pun di sekelilingnya yang ia saingi. */}
+        <Animated.View style={markStyle}>
+          <BrandMark className="h-16 w-16 rounded-[19px] bg-olive" iconSize={36} color="#FFFFFF" />
+        </Animated.View>
+      </View>
+
+      {/* Bilah ulang-alik menggantikan ActivityIndicator: spinner Material terlihat asing
+          di sebelah bentuk-bentuk membulat aplikasi ini, dan warnanya tak bisa dibentuk. */}
+      <View
+        className="h-1 overflow-hidden rounded-full bg-ph"
+        style={{ width: TRACK }}
+        accessibilityRole="progressbar"
+        accessibilityLabel="Memuat sesi"
+      >
+        <Animated.View
+          style={[
+            { width: PILL, height: '100%', borderRadius: 999 },
+            { backgroundColor: colors[mode].olive },
+            barStyle,
+          ]}
+        />
+      </View>
+
+      <Animated.View style={textStyle}>
+        <Text className="font-sans text-[13px] font-semibold text-dim">Memuat sesi…</Text>
+      </Animated.View>
     </View>
   );
 }

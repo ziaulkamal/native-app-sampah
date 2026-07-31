@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useEffect, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Text, View } from 'react-native';
 import { ScreenScaffold } from '@/components/layout/ScreenScaffold';
@@ -11,6 +12,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { formatRupiah } from '@/lib/format';
 import { BILL_BADGE } from '@/lib/labels';
 import { usePagination } from '@/lib/pagination';
+import type { PelangganTagihanParams } from '@/navigation/types';
 import { useTheme } from '@/theme/ThemeProvider';
 import { colors, semantic } from '@/tokens/tokens';
 import type { Bill } from '@/types';
@@ -18,11 +20,14 @@ import { LocationSwitcher } from './LocationSwitcher';
 import { PaymentSheet } from './PaymentSheet';
 import { useActiveLocation } from './useActiveLocation';
 
+type Props = NativeStackScreenProps<PelangganTagihanParams, 'PelangganTagihan'>;
+
 /** Tagihan retribusi milik pelanggan: daftar + entry point bayar. */
-export function PelangganTagihan() {
+export function PelangganTagihan({ route, navigation }: Props) {
   const { active, locations, billsForActive, select } = useActiveLocation();
   const [payTarget, setPayTarget] = useState<Bill | null>(null);
   const { mode } = useTheme();
+  const pay = route.params?.pay === true;
 
   // Tagihan menempel ke TITIK LAYANAN, jadi disaring ke titik yang sedang dipilih.
   // Belum lunas diurutkan dari yang TERLAMA: itu urutan pelunasan yang ditegakkan server.
@@ -34,6 +39,15 @@ export function PelangganTagihan() {
   // Hanya riwayatnya yang berhalaman. Daftar "belum dibayar" sengaja utuh: memotongnya
   // menyembunyikan berapa bulan yang sebenarnya tertunggak.
   const { items: shownPaid, bind } = usePagination(paid, active?.id ?? null);
+
+  // Datang dari tombol Bayar (menu beranda / nav bawah): sheet dibuka sendiri di tagihan
+  // terlama. Paramnya langsung dicabut supaya kembali ke tab ini tak membukanya lagi.
+  const first = unpaid[0];
+  useEffect(() => {
+    if (!pay) return;
+    navigation.setParams({ pay: undefined });
+    if (first !== undefined) setPayTarget(first);
+  }, [pay, first, navigation]);
 
   return (
     <ScreenScaffold>

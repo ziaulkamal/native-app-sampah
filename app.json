@@ -7,10 +7,13 @@
     "scheme": "sampahapp",
     "userInterfaceStyle": "automatic",
     "platforms": ["android"],
+    "icon": "./assets/icon.png",
     "android": {
       "package": "id.go.acehbaratdaya.sampah",
       "versionCode": 1,
       "adaptiveIcon": {
+        "//": "Foreground transparan dengan latar terpisah, bukan icon.png yang sudah berlatar: peluncur Android memotong lapisan foreground dengan mask apa pun (lingkaran, squircle) dan menggesernya saat animasi parallax — latar yang menempel pada glyph akan ikut terpotong dan menyisakan tepi.",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#EDEBE4"
       },
       "permissions": ["android.permission.CAMERA", "android.permission.INTERNET"],
@@ -60,6 +63,20 @@
           "//": "`microphonePermission: false` bukan sekadar tak meminta: plugin ini memblokir RECORD_AUDIO, yang kalau dibiarkan ikut masuk manifest walau aplikasi tak pernah merekam video.",
           "photosPermission": "Aplikasi memerlukan akses galeri untuk memilih foto KTP dan foto profil.",
           "microphonePermission": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "//": "Latar splash dibuat sama persis dengan token `bg` tiap tema, supaya sambungan ke BootSplash JS tak berkedip: splash native memudar tepat ke warna yang sudah ada di baliknya. `resizeMode: contain` dengan imageWidth kecil — lambangnya lambang, bukan gambar latar.",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#EDEBE4",
+          "dark": {
+            "image": "./assets/splash-icon-dark.png",
+            "backgroundColor": "#141410"
+          }
         }
       ],
       [

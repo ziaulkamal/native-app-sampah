@@ -10,10 +10,10 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
  */
 
 export type AuthStackParams = {
-  PilihMasuk: undefined;
-  LoginPelanggan: undefined;
-  LoginPetugas: undefined;
-  /** OTP dikirim ke kanal yang dipilih di layar sebelumnya. */
+  Masuk: undefined;
+  /** Jalur kata sandi; identitas dibawa dari layar Masuk supaya tak diketik dua kali. */
+  Sandi: { identity: string };
+  /** OTP dikirim ke kanal yang disimpulkan dari bentuk identitasnya. */
   Otp: { identity: string; channel: 'wa' | 'email' };
   Register: undefined;
 };
@@ -26,7 +26,8 @@ export type PelangganBerandaParams = {
 };
 
 export type PelangganTagihanParams = {
-  PelangganTagihan: undefined;
+  /** `pay` diisi tombol tengah nav bawah: buka langsung sheet tagihan terlama. */
+  PelangganTagihan: { pay?: boolean } | undefined;
   PelangganRiwayat: undefined;
 };
 
@@ -54,9 +55,15 @@ export type ProfilStackParams = {
   Akun: undefined;
 };
 
+/**
+ * `Bayar`/`Catat` bukan layar: keduanya slot tombol bulat di tengah nav bawah, yang
+ * ketukannya dibelokkan ke rute lain sebelum navigator sempat memfokuskannya. Ia tetap
+ * harus jadi rute karena hanya rute yang punya kursi di bilah tab.
+ */
 export type PelangganTabParams = {
   Beranda: NavigatorScreenParams<PelangganBerandaParams>;
   Tagihan: NavigatorScreenParams<PelangganTagihanParams>;
+  Bayar: undefined;
   Jadwal: NavigatorScreenParams<PelangganJadwalParams>;
   Profil: NavigatorScreenParams<ProfilStackParams>;
 };
@@ -64,6 +71,7 @@ export type PelangganTabParams = {
 export type OperatorTabParams = {
   Beranda: NavigatorScreenParams<OperatorBerandaParams>;
   Rute: NavigatorScreenParams<OperatorRuteParams>;
+  Catat: undefined;
   Tagih: NavigatorScreenParams<OperatorPenagihanParams>;
   Profil: NavigatorScreenParams<ProfilStackParams>;
 };

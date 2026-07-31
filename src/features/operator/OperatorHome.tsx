@@ -1,72 +1,80 @@
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import { Pressable, Text, View } from 'react-native';
-import { ScreenScaffold } from '@/components/layout/ScreenScaffold';
+import { Text, View } from 'react-native';
+import {
+  greetingNow,
+  HeroAmount,
+  HeroGreeting,
+  HeroScaffold,
+} from '@/components/layout/HeroScaffold';
 import { Avatar } from '@/components/ui/Avatar';
-import { Icon, type IconName } from '@/components/ui/Icon';
-import { ProgressBar } from '@/components/ui/ProgressBar';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { StatCard } from '@/components/ui/StatCard';
-import { formatRupiahShort, toPercent } from '@/lib/format';
-import type { OperatorBerandaParams } from '@/navigation/types';
+import { NotificationBell } from '@/features/notifikasi/NotificationBell';
+import { HomeMenu, type HomeMenuItem } from '@/features/shared/HomeMenu';
+import { formatRupiah, formatRupiahShort, toPercent } from '@/lib/format';
+import type { OperatorTabParams } from '@/navigation/types';
 import { useApp } from '@/store/AppContext';
-import { useTheme } from '@/theme/ThemeProvider';
-import { colors } from '@/tokens/tokens';
 import { CollectRow } from './CollectRow';
 import { useOperatorData } from './useOperatorData';
 
-type Nav = NavigationProp<OperatorBerandaParams>;
+type Nav = NavigationProp<OperatorTabParams>;
 
-const ACTIONS: { to: 'OperatorVerifikasi' | 'OperatorSetor'; label: string; icon: IconName }[] = [
-  { to: 'OperatorVerifikasi', label: 'Verifikasi', icon: 'qr' },
-  { to: 'OperatorSetor', label: 'Setor Kas', icon: 'wallet' },
-];
-
-/** Beranda Petugas: cakupan wilayah, kas hari ini, aksi cepat, rute penagihan. */
+/** Beranda Petugas: kas di tangan, cakupan penagihan, aksi lapangan, rute hari ini. */
 export function OperatorHome() {
   const { payBill, session } = useApp();
   const nav = useNavigation<Nav>();
-  const { op, zones, list, billFor, unpaidCountFor, collectedToday } = useOperatorData();
+  const { op, zones, list, billFor, unpaidCountFor, collectedToday, cash } = useOperatorData();
+
   const outstanding = list.filter((c) => billFor.get(c.id)?.status !== 'lunas').length;
   // Beban kerja petugas diukur cakupan wilayah, bukan target rupiah (keputusan dinas).
   const covered = list.length - outstanding;
-  const pct = toPercent(covered, list.length);
+
+  const menu: HomeMenuItem[] = [
+    { label: 'Rute', icon: 'route', onPress: () => nav.navigate('Rute', { screen: 'OperatorRute' }) },
+    {
+      label: 'Penagihan',
+      icon: 'wallet',
+      badge: outstanding,
+      onPress: () => nav.navigate('Tagih', { screen: 'OperatorPenagihan' }),
+    },
+    {
+      label: 'Verifikasi',
+      icon: 'qr',
+      onPress: () => nav.navigate('Beranda', { screen: 'OperatorVerifikasi' }),
+    },
+    {
+      label: 'Setor kas',
+      icon: 'receipt',
+      onPress: () => nav.navigate('Beranda', { screen: 'OperatorSetor' }),
+    },
+  ];
 
   return (
-    <ScreenScaffold>
-      {/* `MobileTopBar` web tak diporting: header tab sudah memegang judul dan lonceng,
-          jadi identitas petugas turun jadi baris pertama isi layar. */}
-      <View className="flex-row items-center gap-3">
-        <Avatar
-          name={op?.name ?? 'Petugas'}
-          src={session?.avatarUrl ?? undefined}
-          size={46}
-          icon="truck"
-        />
-        <View className="flex-1">
-          <Text className="text-[9.5px] font-semibold uppercase tracking-wider text-olive">
-            Petugas Retribusi
-          </Text>
-          <Text className="text-[18px] font-extrabold text-ink" numberOfLines={1}>
-            {op?.name ?? '—'}
-          </Text>
-        </View>
-      </View>
-
-      <View className="rounded-xl3 bg-surface p-5 shadow-card">
-        <View className="mb-1 flex-row items-center justify-between">
-          <Text className="text-[11px] font-semibold uppercase tracking-wide text-dim">
-            Cakupan penagihan
-          </Text>
-          <Text className="text-[13px] font-extrabold text-olive">{pct}%</Text>
-        </View>
-        <Text className="text-[26px] font-extrabold leading-none text-ink">
-          {covered} / {list.length} titik
-        </Text>
-        <Text className="mb-3 mt-1 text-[12px] text-dim">
-          {zones.length} zona · {outstanding} titik masih menunggu
-        </Text>
-        <ProgressBar value={pct} />
-      </View>
+    <HeroScaffold
+      hero={
+        <>
+          <HeroGreeting
+            avatar={
+              <Avatar
+                name={op?.name ?? 'Petugas'}
+                src={session?.avatarUrl ?? undefined}
+                size={44}
+                icon="truck"
+              />
+            }
+            greeting={greetingNow()}
+            name={op?.name ?? '—'}
+            right={<NotificationBell onHero />}
+          />
+          <HeroAmount
+            label="Kas di tangan · belum disetor"
+            amount={formatRupiah(cash.total).replace('Rp', '').trim()}
+          />
+          <Coverage covered={covered} total={list.length} />
+        </>
+      }
+    >
+      <HomeMenu items={menu} />
 
       <View className="flex-row gap-3">
         <View className="flex-1">
@@ -79,12 +87,6 @@ export function OperatorHome() {
         <View className="flex-1">
           <StatCard label="Sisa tagihan" value={`${outstanding} pelanggan`} icon="receipt" />
         </View>
-      </View>
-
-      <View className="flex-row gap-3">
-        {ACTIONS.map((a) => (
-          <ActionCard key={a.to} label={a.label} icon={a.icon} onPress={() => nav.navigate(a.to)} />
-        ))}
       </View>
 
       <View className="gap-3">
@@ -103,32 +105,35 @@ export function OperatorHome() {
           );
         })}
       </View>
-    </ScreenScaffold>
+
+      <Text className="px-1 text-[11px] leading-snug text-dim">
+        {zones.length} zona dalam tanggung jawab Anda. Kas di tangan berkurang setelah setoran
+        disetujui admin, bukan saat diajukan.
+      </Text>
+    </HeroScaffold>
   );
 }
 
-function ActionCard({
-  label,
-  icon,
-  onPress,
-}: {
-  label: string;
-  icon: IconName;
-  onPress: () => void;
-}) {
-  const { mode } = useTheme();
+/**
+ * Cakupan penagihan di kaki kepala: satu bilah tipis, bukan kartu tersendiri.
+ * Bilahnya lime, satu-satunya warna yang tetap terbaca di atas olive maupun di gelap.
+ */
+function Coverage({ covered, total }: { covered: number; total: number }) {
+  const pct = toPercent(covered, total);
+
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      className="flex-1 flex-row items-center gap-2.5 rounded-xl2 bg-surface p-3.5 shadow-card"
-    >
-      <View className="h-9 w-9 items-center justify-center rounded-lg bg-pill">
-        <Icon name={icon} size={19} color={colors[mode].olive} />
+    <View className="mt-6">
+      <View className="mb-1.5 flex-row items-center justify-between">
+        <Text className="font-sans text-[11px] font-semibold uppercase tracking-wide text-white/70">
+          Cakupan penagihan
+        </Text>
+        <Text className="font-sans text-[12px] font-extrabold text-white">
+          {covered}/{total}
+        </Text>
       </View>
-      <Text className="flex-1 text-[13px] font-bold text-ink" numberOfLines={1}>
-        {label}
-      </Text>
-    </Pressable>
+      <View className="h-1.5 overflow-hidden rounded-full bg-white/20">
+        <View className="h-full rounded-full bg-lime" style={{ width: `${pct}%` }} />
+      </View>
+    </View>
   );
 }
