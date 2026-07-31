@@ -47,8 +47,10 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
           style={{ maxHeight: '92%', paddingBottom: insets.bottom }}
           className="rounded-t-[22px] bg-surface shadow-pop"
         >
-          <View className="h-14 flex-none flex-row items-center justify-between border-b border-line px-5">
-            <Text className="font-sans text-[15px] font-extrabold text-ink">{title}</Text>
+          {/* `min-h`: judul dua baris atau font sistem besar meninggikan kepalanya,
+              bukan memotong judul. */}
+          <View className="min-h-[56px] flex-none flex-row items-center justify-between gap-3 border-b border-line px-5 py-2">
+            <Text className="flex-1 font-sans text-[15px] font-extrabold text-ink">{title}</Text>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Tutup"

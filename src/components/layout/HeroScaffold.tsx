@@ -6,7 +6,7 @@ import { DataBanner } from '@/components/ui/DataBanner';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { useApp } from '@/store/AppContext';
 import { useTheme } from '@/theme/ThemeProvider';
-import { colors } from '@/tokens/tokens';
+import { colors, typography } from '@/tokens/tokens';
 
 /**
  * Kerangka beranda: kepala bermerek selebar layar, isi menaikinya 26dp.
@@ -23,7 +23,9 @@ export function HeroScaffold({ hero, children }: { hero: ReactNode; children: Re
     <View className="flex-1 bg-bg">
       <DataBanner />
       <ScrollView
-        contentContainerClassName="pb-8"
+        // 56dp, bukan 32: tombol tengah bilah tab menjulang 30dp di atas bilahnya,
+        // jadi kartu terakhir butuh ruang selebihnya agar tak tertimpa saat gulir mentok.
+        contentContainerClassName="pb-14"
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -73,16 +75,33 @@ function Hero({ children }: { children: ReactNode }) {
   );
 }
 
-/** Angka besar di tengah kepala — nominal yang jadi alasan orang membuka aplikasi ini. */
+/**
+ * Angka besar di tengah kepala — nominal yang jadi alasan orang membuka aplikasi ini.
+ *
+ * Teks di seluruh kepala dibatasi `typography.maxScale`: kepala adalah chrome yang
+ * proporsinya dijaga, dan di perangkat berskala font besar angka 38px yang ikut
+ * membesar penuh mendorong kapsul di kakinya keluar dari zona tumpang-tindih kartu.
+ */
 export function HeroAmount({ label, amount }: { label: string; amount: string }) {
   return (
     <View className="mt-6 items-center">
-      <Text className="font-sans text-[11px] font-semibold uppercase tracking-wide text-white/70">
+      <Text
+        maxFontSizeMultiplier={typography.maxScale}
+        className="font-sans text-[11px] font-semibold uppercase tracking-wide text-white/70"
+      >
         {label}
       </Text>
       <View className="mt-1.5 flex-row items-end gap-1.5">
-        <Text className="pb-1.5 font-sans text-[18px] font-semibold text-white/80">Rp</Text>
-        <Text className="font-sans text-[38px] font-extrabold leading-none tracking-tight text-white">
+        <Text
+          maxFontSizeMultiplier={typography.maxScale}
+          className="pb-1.5 font-sans text-[18px] font-semibold text-white/80"
+        >
+          Rp
+        </Text>
+        <Text
+          maxFontSizeMultiplier={typography.maxScale}
+          className="font-sans text-[38px] font-extrabold leading-none tracking-tight text-white"
+        >
           {amount}
         </Text>
       </View>
@@ -105,11 +124,17 @@ export function HeroPill({
       accessibilityRole={onPress === undefined ? 'text' : 'button'}
       disabled={onPress === undefined}
       onPress={onPress}
-      className="mt-[18px] h-[42px] flex-row items-center justify-center gap-2 self-center rounded-full border border-white/25 px-4"
+      // `min-h`, bukan `h`: saat teksnya lebih tinggi (skala font sistem) kapsul ikut
+      // tumbuh, bukan memotong hurufnya.
+      className="mt-[18px] min-h-[42px] flex-row items-center justify-center gap-2 self-center rounded-full border border-white/25 px-4 py-2"
       style={({ pressed }) => (pressed ? { opacity: 0.8 } : undefined)}
     >
       <Icon name={icon} size={15} color="#FFFFFF" />
-      <Text className="font-sans text-[12.5px] font-semibold text-white" numberOfLines={1}>
+      <Text
+        maxFontSizeMultiplier={typography.maxScale}
+        className="font-sans text-[12.5px] font-semibold text-white"
+        numberOfLines={1}
+      >
         {label}
       </Text>
       {onPress !== undefined && <Icon name="chevron" size={13} color="#FFFFFF" />}
@@ -133,8 +158,17 @@ export function HeroGreeting({
     <View className="flex-row items-center gap-3">
       {avatar}
       <View className="flex-1">
-        <Text className="font-sans text-[11px] text-white/70">{greeting}</Text>
-        <Text className="font-sans text-[15px] font-extrabold text-white" numberOfLines={1}>
+        <Text
+          maxFontSizeMultiplier={typography.maxScale}
+          className="font-sans text-[11px] text-white/70"
+        >
+          {greeting}
+        </Text>
+        <Text
+          maxFontSizeMultiplier={typography.maxScale}
+          className="font-sans text-[15px] font-extrabold text-white"
+          numberOfLines={1}
+        >
           {name}
         </Text>
       </View>

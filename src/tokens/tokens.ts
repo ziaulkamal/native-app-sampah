@@ -48,6 +48,13 @@ export const typography = {
   mono: 'JetBrainsMono',
   sizes: { caption: 11, small: 12.5, body: 14, title: 17, h2: 22, h1: 27 },
   weights: { regular: '400', medium: '500', semibold: '600', bold: '700', extrabold: '800' },
+  /**
+   * Batas ikut-membesarnya teks saat pengguna menaikkan "Ukuran font" sistem
+   * (`maxFontSizeMultiplier`). Hanya untuk teks di dalam chrome yang ukurannya
+   * dijaga — kepala beranda, label menu, badge; teks isi biarkan mengikuti sistem.
+   * Tanpa batas ini, perangkat berskala font besar merobek kotak-kotak tetapnya.
+   */
+  maxScale: 1.2,
 } as const;
 
 /**

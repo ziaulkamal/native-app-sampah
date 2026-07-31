@@ -1,7 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { useTheme } from '@/theme/ThemeProvider';
-import { colors, shadows } from '@/tokens/tokens';
+import { colors, shadows, typography } from '@/tokens/tokens';
 
 export interface HomeMenuItem {
   label: string;
@@ -48,14 +48,23 @@ function MenuButton({ label, icon, badge, onPress, spaced }: HomeMenuItem & { sp
       <View className="h-[52px] w-[52px] items-center justify-center rounded-full bg-pill">
         <Icon name={icon} size={22} color={colors[mode].olive} />
         {badge !== undefined && badge > 0 && (
-          <View className="absolute -right-1 -top-1 h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger px-1">
-            <Text className="font-sans text-[10.5px] font-bold text-white">
+          <View className="absolute -right-1 -top-1 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger px-1">
+            <Text
+              maxFontSizeMultiplier={typography.maxScale}
+              className="font-sans text-[10.5px] font-bold text-white"
+            >
               {badge > 99 ? '99+' : badge}
             </Text>
           </View>
         )}
       </View>
-      <Text className="font-sans text-[11px] font-bold text-ink" numberOfLines={1}>
+      {/* Label dibatasi `maxScale`: kolomnya tetap 1/4 lebar, teks yang membesar penuh
+          hanya bisa terpotong `numberOfLines`, bukan membungkus rapi. */}
+      <Text
+        maxFontSizeMultiplier={typography.maxScale}
+        className="font-sans text-[11px] font-bold text-ink"
+        numberOfLines={1}
+      >
         {label}
       </Text>
     </Pressable>

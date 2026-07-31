@@ -37,7 +37,9 @@ export function ScreenScaffold({ children, scroll = true }: ScreenScaffoldProps)
     <View className="flex-1 bg-bg">
       {banner}
       <ScrollView
-        contentContainerClassName="p-4 gap-4 pb-8"
+        // pb-14 (56dp): tombol tengah bilah tab menjulang 30dp di atas bilahnya —
+        // isi paling bawah butuh ruang selebihnya supaya tak tertimpa saat gulir mentok.
+        contentContainerClassName="p-4 gap-4 pb-14"
         refreshControl={
           <RefreshControl
             refreshing={dataState === 'loading'}

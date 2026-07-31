@@ -55,6 +55,11 @@ function useTabScreenOptions() {
     headerTitleStyle: { fontFamily: typography.sans, fontWeight: '800' as const, fontSize: 17 },
     headerTintColor: c.text,
     headerRight: () => <NotificationBell />,
+    // Chrome navigasi tak ikut skala font sistem: bilah tab & header tingginya tetap,
+    // dan label 10.5px yang membesar di perangkat berskala besar terpotong atau
+    // membungkus di kursi tab yang sempit. Teks isi layar tetap mengikuti sistem.
+    headerTitleAllowFontScaling: false,
+    tabBarAllowFontScaling: false,
     tabBarActiveTintColor: c.olive,
     tabBarInactiveTintColor: c['text-dim'],
     tabBarStyle: { backgroundColor: c.nav, borderTopColor: c.border },

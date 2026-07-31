@@ -3,7 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { Icon } from '@/components/ui/Icon';
 import { useApp } from '@/store/AppContext';
 import { useTheme } from '@/theme/ThemeProvider';
-import { colors } from '@/tokens/tokens';
+import { colors, typography } from '@/tokens/tokens';
 import { NotificationSheet } from './NotificationSheet';
 
 /**
@@ -48,8 +48,11 @@ export function NotificationBell({ onHero = false }: { onHero?: boolean }) {
           (onHero ? (
             <View className="absolute right-1 top-1.5 h-[9px] w-[9px] rounded-full bg-lime" />
           ) : (
-            <View className="absolute -right-0.5 -top-0.5 h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger px-1">
-              <Text className="font-sans text-[10px] font-bold text-white">
+            <View className="absolute -right-0.5 -top-0.5 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger px-1">
+              <Text
+                maxFontSizeMultiplier={typography.maxScale}
+                className="font-sans text-[10px] font-bold text-white"
+              >
                 {unread > 99 ? '99+' : unread}
               </Text>
             </View>
