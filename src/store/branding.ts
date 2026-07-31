@@ -19,8 +19,8 @@ export interface Branding {
  * Nilainya sengaja sama dengan bawaan di `config/settings.php` sisi server.
  */
 export const BRANDING_FALLBACK: Branding = {
-  appName: 'Sampah App',
-  tagline: 'Retribusi',
+  appName: 'Si Mudah',
+  tagline: 'Apps Restribusi DLH',
   description: null,
   footerCredit: null,
   logoUrl: null,
