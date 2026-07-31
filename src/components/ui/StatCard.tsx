@@ -10,21 +10,29 @@ interface StatCardProps {
   /** Delta opsional, mis. "↑ 12%". */
   delta?: string;
   up?: boolean;
+  /** Penanda angka di sudut, mis. jumlah tunggakan. Kalah tempat dari `delta`. */
+  badge?: string;
 }
 
 /** Kartu KPI/metrik. Full-port dari web (dipakai beranda Operator). */
-export function StatCard({ label, value, icon, delta, up }: StatCardProps) {
+export function StatCard({ label, value, icon, delta, up, badge }: StatCardProps) {
   const { mode } = useTheme();
   return (
     <View className="rounded-xl2 bg-surface p-4 shadow-card">
       <View className="mb-2.5 flex-row items-center justify-between">
         <Icon name={icon} size={20} color={colors[mode].olive} />
-        {delta !== undefined && (
+        {delta !== undefined ? (
           <Text
             className={`font-sans text-[10px] font-semibold ${up === true ? 'text-success' : 'text-danger'}`}
           >
             {delta}
           </Text>
+        ) : (
+          badge !== undefined && (
+            <View className="rounded-full bg-warning/10 px-2 py-[3px]">
+              <Text className="font-sans text-[10.5px] font-bold text-warning">{badge}</Text>
+            </View>
+          )
         )}
       </View>
       <Text className="font-sans text-[21px] font-extrabold leading-none text-ink">{value}</Text>

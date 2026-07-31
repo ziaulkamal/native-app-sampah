@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRoute, type RouteProp } from '@react-navigation/native';
 import { Text, View } from 'react-native';
 import { ScreenScaffold } from '@/components/layout/ScreenScaffold';
+import { ScreenTitle } from '@/components/layout/ScreenTitle';
 import { Chip } from '@/components/ui/Chip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
@@ -63,24 +64,23 @@ export function OperatorPenagihan() {
 
   return (
     <ScreenScaffold>
-      <View>
-        <Text className="text-[9.5px] font-semibold uppercase tracking-wider text-olive">
-          Operator Restribusi
-        </Text>
-        <Text className="text-[20px] font-extrabold text-ink">Penagihan</Text>
-      </View>
-
-      <View className="flex-row items-center gap-3 rounded-xl2 bg-surface p-4 shadow-card">
-        <View className="h-11 w-11 items-center justify-center rounded-xl bg-pill">
-          <Icon name="wallet" size={24} color={colors[mode].olive} />
-        </View>
-        <View className="flex-1">
-          <Text className="text-[18px] font-extrabold leading-none text-ink">
-            {formatRupiah(collectedToday)}
-          </Text>
-          <Text className="mt-1 text-[11.5px] text-dim">terkumpul hari ini</Text>
-        </View>
-      </View>
+      {/* Kas hari ini cuma penanda, bukan isi layar — selebar layar ia mendorong daftar
+          penagihan turun satu blok penuh, jadi disusutkan ke samping judul. */}
+      <ScreenTitle
+        eyebrow="Operator Retribusi"
+        title="Penagihan"
+        action={
+          <View className="flex-row items-center gap-2 rounded-xl bg-surface px-3 py-2 shadow-card">
+            <Icon name="wallet" size={18} color={colors[mode].olive} />
+            <View>
+              <Text className="text-[13.5px] font-extrabold leading-none text-ink">
+                {formatRupiah(collectedToday)}
+              </Text>
+              <Text className="mt-0.5 text-[10.5px] text-dim">terkumpul hari ini</Text>
+            </View>
+          </View>
+        }
+      />
 
       <SearchBar value={query} onChangeText={setQuery} placeholder="Cari nama atau alamat…" />
 

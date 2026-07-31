@@ -23,7 +23,9 @@ export function SearchBar({ value, onChangeText, placeholder }: SearchBarProps) 
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={colors[mode].ph}
+        // `ph` itu warna LATAR placeholder di web, bukan warna teksnya — dipakai di
+        // sini teksnya nyaris tak terbaca. Warna teks redup yang benar `text-dim`.
+        placeholderTextColor={colors[mode]['text-dim']}
         returnKeyType="search"
         className="flex-1 text-[13.5px] text-ink"
       />

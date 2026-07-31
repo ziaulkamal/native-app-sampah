@@ -70,7 +70,9 @@ export function ProfilScreen() {
         ))}
       </ProfilCard>
 
-      <ProfilCard title="Keamanan">
+      {/* Dua kartu satu-baris berturut-turut membuat halaman terasa terpotong-potong;
+          keduanya sama-sama "pengaturan akun", jadi cukup satu judul seksi. */}
+      <ProfilCard title="Keamanan & preferensi">
         <ActionRow
           icon="lock"
           label="Ganti kata sandi"
@@ -78,16 +80,21 @@ export function ProfilScreen() {
           onPress={() => setGantiPassword(true)}
           first
         />
-      </ProfilCard>
-
-      <ProfilCard title="Preferensi">
         {/* Sakelar gelap tinggal di `ThemeProvider`, bukan di store seperti web:
             NativeWind yang memegang skema warnanya. */}
-        <ToggleRow icon="moon" label="Mode gelap" checked={dark} onChange={toggleDark} first />
+        <ToggleRow icon="moon" label="Mode gelap" checked={dark} onChange={toggleDark} />
       </ProfilCard>
 
       <ProfilCard>
-        <ActionRow icon="logout" label="Keluar" tone="danger" onPress={app.signOut} first />
+        {/* Keluar itu aksi di tempat, bukan pintu ke layar lain — chevronnya dilepas. */}
+        <ActionRow
+          icon="logout"
+          label="Keluar"
+          tone="danger"
+          chevron={false}
+          onPress={app.signOut}
+          first
+        />
       </ProfilCard>
 
       {/* Kredit datang dari pengaturan; versinya tidak — ia milik rilis aplikasi ini,

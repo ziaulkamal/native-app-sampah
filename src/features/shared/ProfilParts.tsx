@@ -10,7 +10,7 @@ export function ProfilCard({ title, children }: { title?: string; children: Reac
   return (
     <View>
       {title !== undefined && (
-        <Text className="mb-2 px-1 text-[10.5px] font-semibold uppercase tracking-wide text-dim">
+        <Text className="mb-2 px-1 text-[11px] font-bold uppercase tracking-wide text-dim">
           {title}
         </Text>
       )}
@@ -74,6 +74,7 @@ export function ActionRow({
   label,
   hint,
   tone = 'default',
+  chevron = true,
   onPress,
   first,
 }: {
@@ -81,27 +82,30 @@ export function ActionRow({
   label: string;
   hint?: string;
   tone?: 'default' | 'danger';
+  /** Chevron menjanjikan "ada layar lain di baliknya" — matikan untuk aksi di tempat. */
+  chevron?: boolean;
   onPress: () => void;
   first?: boolean;
 }) {
   const { mode } = useTheme();
-  const tint = tone === 'danger' ? semantic.danger : colors[mode].olive;
+  const danger = tone === 'danger';
+  const tint = danger ? semantic.danger : colors[mode].olive;
 
   return (
     <Pressable accessibilityRole="button" onPress={onPress}>
       <Row first={first}>
-        <View className="h-9 w-9 items-center justify-center rounded-lg bg-pill">
+        <View
+          className={`h-9 w-9 items-center justify-center rounded-lg ${danger ? 'bg-danger/10' : 'bg-pill'}`}
+        >
           <Icon name={icon} size={18} color={tint} />
         </View>
         <View className="flex-1">
-          <Text
-            className={`text-[13.5px] font-semibold ${tone === 'danger' ? 'text-danger' : 'text-ink'}`}
-          >
+          <Text className={`text-[13.5px] font-semibold ${danger ? 'text-danger' : 'text-ink'}`}>
             {label}
           </Text>
           {hint !== undefined && <Text className="mt-0.5 text-[11.5px] text-dim">{hint}</Text>}
         </View>
-        <Icon name="chevron" size={16} color={colors[mode]['text-dim']} />
+        {chevron && <Icon name="chevron" size={16} color={colors[mode]['text-dim']} />}
       </Row>
     </Pressable>
   );

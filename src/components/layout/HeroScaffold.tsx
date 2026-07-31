@@ -45,7 +45,9 @@ function Hero({ children }: { children: ReactNode }) {
   const { mode } = useTheme();
   const insets = useSafeAreaInsets();
   const pad = { paddingTop: insets.top + 14 };
-  const shape = 'rounded-b-[34px] px-[22px] pb-[46px]';
+  // Kaki kepala 50dp: kapsul titik berhenti tepat di atas kartu menu yang menaikinya
+  // 26dp. Dengan 46dp kapsulnya masih tertutup separuh.
+  const shape = 'rounded-b-[34px] px-[22px] pb-[50px]';
 
   // Di gelap kepalanya tidak bergradien terang: olive #5A6A1E gagal 3:1 di atas latar
   // gelap, jadi kontrasnya datang dari permukaan sedikit lebih terang + garis tepi.
@@ -74,7 +76,7 @@ function Hero({ children }: { children: ReactNode }) {
 /** Angka besar di tengah kepala — nominal yang jadi alasan orang membuka aplikasi ini. */
 export function HeroAmount({ label, amount }: { label: string; amount: string }) {
   return (
-    <View className="mt-7 items-center">
+    <View className="mt-6 items-center">
       <Text className="font-sans text-[11px] font-semibold uppercase tracking-wide text-white/70">
         {label}
       </Text>
@@ -103,7 +105,7 @@ export function HeroPill({
       accessibilityRole={onPress === undefined ? 'text' : 'button'}
       disabled={onPress === undefined}
       onPress={onPress}
-      className="mt-5 h-[42px] flex-row items-center justify-center gap-2 self-center rounded-full border border-white/25 px-4"
+      className="mt-[18px] h-[42px] flex-row items-center justify-center gap-2 self-center rounded-full border border-white/25 px-4"
       style={({ pressed }) => (pressed ? { opacity: 0.8 } : undefined)}
     >
       <Icon name={icon} size={15} color="#FFFFFF" />
@@ -131,7 +133,7 @@ export function HeroGreeting({
     <View className="flex-row items-center gap-3">
       {avatar}
       <View className="flex-1">
-        <Text className="font-sans text-[10.5px] text-white/70">{greeting}</Text>
+        <Text className="font-sans text-[11px] text-white/70">{greeting}</Text>
         <Text className="font-sans text-[15px] font-extrabold text-white" numberOfLines={1}>
           {name}
         </Text>

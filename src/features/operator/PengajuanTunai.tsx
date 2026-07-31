@@ -4,11 +4,15 @@ import { listPayments } from '@/api/payments';
 import type { PaymentDto } from '@/api/types';
 import { Button } from '@/components/ui/Button';
 import { TextareaField } from '@/components/ui/FormField';
+import { Icon } from '@/components/ui/Icon';
 import { Modal } from '@/components/ui/Modal';
 import { Pagination } from '@/components/ui/Pagination';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import { formatRupiah } from '@/lib/format';
 import { usePagination } from '@/lib/pagination';
 import { useApp } from '@/store/AppContext';
+import { useTheme } from '@/theme/ThemeProvider';
+import { colors } from '@/tokens/tokens';
 
 /**
  * Pengajuan bayar tunai dari pelanggan yang menunggu konfirmasi petugas (PLAN §10.2).
@@ -24,6 +28,7 @@ import { useApp } from '@/store/AppContext';
  */
 export function PengajuanTunai() {
   const { acceptPayment, rejectPayment, dataRevision } = useApp();
+  const { mode } = useTheme();
   const [rows, setRows] = useState<PaymentDto[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<PaymentDto | null>(null);
@@ -76,10 +81,15 @@ export function PengajuanTunai() {
 
   return (
     <View>
-      <Text className="mb-1 text-[14px] font-extrabold text-ink">Pengajuan bayar tunai</Text>
-      <Text className="mb-3 text-[11.5px] leading-snug text-dim">
-        Terima hanya setelah uangnya benar-benar Anda pegang — sejak itu kas ini masuk setoran Anda.
-      </Text>
+      <SectionHeader
+        title="Pengajuan bayar tunai"
+        className="mb-2.5"
+        action={
+          <View className="h-5 min-w-[20px] items-center justify-center rounded-full bg-danger px-1.5">
+            <Text className="font-sans text-[11px] font-bold text-white">{rows.length}</Text>
+          </View>
+        }
+      />
 
       <View className="gap-2.5">
         {shown.map((row) => (
@@ -89,12 +99,23 @@ export function PengajuanTunai() {
                 <Text className="text-[13.5px] font-bold text-ink" numberOfLines={1}>
                   {row.customer_name ?? '—'}
                 </Text>
-                <Text className="text-[11.5px] text-dim">{row.payment_code}</Text>
+                <Text className="font-mono text-[11px] text-dim">{row.payment_code}</Text>
               </View>
-              <Text className="text-[14px] font-extrabold text-ink">
+              <Text className="text-[15px] font-extrabold text-ink">
                 {formatRupiah(row.total_amount)}
               </Text>
             </View>
+
+            {/* Aturan kas terpenting di layar ini; sebagai catatan kelabu di atas daftar
+                ia terlewat, jadi dipasang di tiap kartu tepat di atas tombolnya. */}
+            <View className="mt-2.5 flex-row items-start gap-2.5 rounded-[10px] bg-surface2 px-3 py-2.5">
+              <Icon name="info" size={15} color={colors[mode].olive} />
+              <Text className="flex-1 text-[11.5px] leading-relaxed text-dim">
+                Terima hanya setelah uangnya benar-benar Anda pegang — sejak itu kas ini masuk
+                setoran Anda.
+              </Text>
+            </View>
+
             {/* Web menaruh dua tombol di baris yang sama dengan nominal; di lebar HP
                 keduanya turun ke baris sendiri agar tetap cukup luas untuk ditekan. */}
             <View className="mt-3 flex-row gap-2">
@@ -110,7 +131,7 @@ export function PengajuanTunai() {
               <View className="flex-1">
                 <Button
                   label="Tolak"
-                  variant="ghost"
+                  variant="outline-danger"
                   size="sm"
                   full
                   disabled={busyId === row.id}

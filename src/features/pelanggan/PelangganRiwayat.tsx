@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { ScreenScaffold } from '@/components/layout/ScreenScaffold';
 import { SubScreenHeader } from '@/components/layout/SubScreenHeader';
-import { Badge } from '@/components/ui/Badge';
 import { Chip } from '@/components/ui/Chip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon, type IconName } from '@/components/ui/Icon';
@@ -36,6 +35,20 @@ const TINT: Record<TxStatus, string> = {
   tertunggak: semantic.danger,
 };
 
+/** Latar ikon memakai tint status supaya baris bisa dipindai tanpa dibaca. */
+const TINT_BG: Record<TxStatus, string> = {
+  selesai: 'bg-success/10',
+  menunggu: 'bg-warning/10',
+  tertunggak: 'bg-danger/10',
+};
+
+/** Nominal hanya diwarnai kalau warnanya menambah keterangan; menunggu tetap tinta. */
+const AMOUNT_FG: Record<TxStatus, string> = {
+  selesai: 'text-success',
+  menunggu: 'text-ink',
+  tertunggak: 'text-danger',
+};
+
 /** Riwayat transaksi milik pelanggan yang login. */
 export function PelangganRiwayat() {
   const { transactions } = useApp();
@@ -50,15 +63,19 @@ export function PelangganRiwayat() {
 
   return (
     <ScreenScaffold>
-      <SubScreenHeader title="Riwayat Transaksi" />
+      <SubScreenHeader eyebrow="Retribusi" title="Riwayat Transaksi" />
 
       <View className="flex-row gap-2.5">
-        <Summary label="Dibayar" value={formatRupiahShort(sum('selesai'))} tone="text-success" />
-        <Summary label="Menunggu" value={formatRupiahShort(sum('menunggu'))} tone="text-warning" />
+        <Summary label="Dibayar" value={formatRupiahShort(sum('selesai'))} dot={semantic.success} />
+        <Summary
+          label="Menunggu"
+          value={formatRupiahShort(sum('menunggu'))}
+          dot={semantic.warning}
+        />
         <Summary
           label="Tertunggak"
           value={formatRupiahShort(sum('tertunggak'))}
-          tone="text-danger"
+          dot={semantic.danger}
         />
       </View>
 
@@ -94,39 +111,48 @@ export function PelangganRiwayat() {
   );
 }
 
-function Summary({ label, value, tone }: { label: string; value: string; tone: string }) {
+/**
+ * Ubin ringkasan. Nominalnya sengaja tetap tinta: tiga angka berwarna berdampingan
+ * ramai, dan warnanya sendiri tak terbaca oleh yang buta warna. Statusnya dipikul
+ * titik + label di bawahnya.
+ */
+function Summary({ label, value, dot }: { label: string; value: string; dot: string }) {
   return (
     <View className="flex-1 rounded-xl2 bg-surface p-3 shadow-card">
-      <Text className={`text-[15px] font-extrabold ${tone}`}>{value}</Text>
-      <Text className="mt-0.5 text-[10.5px] text-dim">{label}</Text>
+      <Text className="text-[16px] font-extrabold text-ink">{value}</Text>
+      <View className="mt-1 flex-row items-center gap-1.5">
+        <View className="h-[7px] w-[7px] rounded-full" style={{ backgroundColor: dot }} />
+        <Text className="text-[11px] text-dim">{label}</Text>
+      </View>
     </View>
   );
 }
 
 function TxCard({ tx }: { tx: Transaction }) {
   const st = TX_STATUS[tx.status];
+  // Statusnya ikut di baris keterangan, jadi badge terpisah tinggal mengulang. Untuk
+  // yang selesai, cara & ref sudah menyebutkannya.
   const secondary =
     tx.status === 'selesai'
       ? `${tx.method ? PAY_METHOD[tx.method] : ''}${tx.ref ? ` · ${tx.ref}` : ''} · ${tx.date}`
-      : `Jatuh tempo ${tx.date}`;
+      : `Jatuh tempo ${tx.date} · ${st.label}`;
 
   return (
     <View className="flex-row items-center gap-3 rounded-xl2 bg-surface p-3.5 shadow-card">
-      <View className="h-[42px] w-[42px] items-center justify-center rounded-[12px] bg-pill">
+      <View
+        className={`h-[42px] w-[42px] items-center justify-center rounded-[12px] ${TINT_BG[tx.status]}`}
+      >
         <Icon name={ICON[tx.status]} size={20} color={TINT[tx.status]} />
       </View>
       <View className="flex-1">
         <Text className="text-[14px] font-bold text-ink">Retribusi {tx.period}</Text>
-        <Text className="mt-0.5 text-[11px] text-dim" numberOfLines={1}>
+        <Text className="mt-0.5 text-[11.5px] text-dim" numberOfLines={1}>
           {secondary}
         </Text>
       </View>
-      <View className="items-end">
-        <Text className="text-[14.5px] font-extrabold text-ink">{formatRupiah(tx.amount)}</Text>
-        <View className="mt-1">
-          <Badge label={st.label} tone={st.tone} />
-        </View>
-      </View>
+      <Text className={`text-[14.5px] font-extrabold ${AMOUNT_FG[tx.status]}`}>
+        {formatRupiah(tx.amount)}
+      </Text>
     </View>
   );
 }

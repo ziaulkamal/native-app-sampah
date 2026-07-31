@@ -1,6 +1,11 @@
+import { cloneElement, isValidElement } from 'react';
 import { Pressable, Text, View, type PressableProps } from 'react-native';
+import { useTheme } from '@/theme/ThemeProvider';
+import { colors } from '@/tokens/tokens';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+/** `outline-danger`: aksi destruktif yang berdampingan dengan aksi utama — ghost di
+ *  posisi itu terbaca seperti "batal", padahal akibatnya tidak sepele. */
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline-danger';
 type Size = 'sm' | 'md';
 
 interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> {
@@ -29,6 +34,7 @@ const box: Record<Variant, string> = {
   secondary: 'bg-surface shadow-card',
   ghost: 'bg-transparent',
   danger: 'bg-danger',
+  'outline-danger': 'border-[1.5px] border-line bg-surface',
 };
 
 const label: Record<Variant, string> = {
@@ -36,10 +42,17 @@ const label: Record<Variant, string> = {
   secondary: 'text-ink',
   ghost: 'text-olive',
   danger: 'text-white',
+  'outline-danger': 'text-danger',
 };
 
+// Olive gelap (#A6B84B) terlalu terang untuk teks putih. Di mode gelap tombol utama
+// dibalik jadi lime berisi teks gelap — pola yang sama dengan FAB di bilah bawah.
+const FLIPPED_PRIMARY = 'bg-lime';
+
+// `min-h` pada `sm`: tanpa itu tombol kecil berhenti di ~38dp, di bawah 44dp yang
+// dipakai sebagai target sentuh minimum di repo ini.
 const boxSize: Record<Size, string> = {
-  sm: 'px-4 py-2.5',
+  sm: 'min-h-[44px] px-5 py-3',
   md: 'px-6 py-4',
 };
 
@@ -47,6 +60,12 @@ const labelSize: Record<Size, string> = {
   sm: 'text-[13px]',
   md: 'text-[15px]',
 };
+
+/** Menimpa prop `color` ikon pemanggil; `undefined` berarti biarkan apa adanya. */
+function tinted(icon: React.ReactNode, color?: string) {
+  if (color === undefined || !isValidElement<{ color?: string }>(icon)) return icon;
+  return cloneElement(icon, { color });
+}
 
 export function Button({
   label: text,
@@ -59,6 +78,13 @@ export function Button({
   disabled,
   ...rest
 }: ButtonProps) {
+  const { mode } = useTheme();
+  const flip = variant === 'primary' && mode === 'dark';
+  // Tombol berlatar penuh mengatur warna isinya sendiri; ikon dari pemanggil ikut
+  // diwarnai ulang supaya tak ada lagi ikon putih di atas lime.
+  const solid = variant === 'primary' || variant === 'danger';
+  const fg = flip ? colors.light.text : '#fff';
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -67,7 +93,7 @@ export function Button({
       // sentuhnya redup sesaat — itulah padanan `transition` di sana.
       className={[
         'flex-row items-center justify-center gap-2 rounded-2xl',
-        box[variant],
+        flip ? FLIPPED_PRIMARY : box[variant],
         boxSize[size],
         full === true ? 'w-full' : '',
         disabled === true ? 'opacity-50' : '',
@@ -76,9 +102,14 @@ export function Button({
       style={({ pressed }) => (pressed && disabled !== true ? { opacity: 0.85 } : undefined)}
       {...rest}
     >
-      {icon !== undefined && <View>{icon}</View>}
-      <Text className={`font-sans font-bold ${label[variant]} ${labelSize[size]}`}>{text}</Text>
-      {iconRight !== undefined && <View>{iconRight}</View>}
+      {icon !== undefined && <View>{tinted(icon, solid ? fg : undefined)}</View>}
+      <Text
+        className={`font-sans font-bold ${solid ? '' : label[variant]} ${labelSize[size]}`}
+        style={solid ? { color: fg } : undefined}
+      >
+        {text}
+      </Text>
+      {iconRight !== undefined && <View>{tinted(iconRight, solid ? fg : undefined)}</View>}
     </Pressable>
   );
 }

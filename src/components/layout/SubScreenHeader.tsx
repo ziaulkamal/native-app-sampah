@@ -32,7 +32,7 @@ export function SubScreenHeader({ title, eyebrow, action }: SubScreenHeaderProps
       </Pressable>
       <View className="flex-1">
         {eyebrow !== undefined && (
-          <Text className="text-[9.5px] font-semibold uppercase tracking-wider text-olive">
+          <Text className="text-[11px] font-semibold uppercase tracking-wider text-olive">
             {eyebrow}
           </Text>
         )}

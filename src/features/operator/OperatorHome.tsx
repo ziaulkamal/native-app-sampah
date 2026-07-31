@@ -1,5 +1,5 @@
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import {
   greetingNow,
   HeroAmount,
@@ -7,13 +7,15 @@ import {
   HeroScaffold,
 } from '@/components/layout/HeroScaffold';
 import { Avatar } from '@/components/ui/Avatar';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { StatCard } from '@/components/ui/StatCard';
 import { NotificationBell } from '@/features/notifikasi/NotificationBell';
-import { HomeMenu, type HomeMenuItem } from '@/features/shared/HomeMenu';
 import { formatRupiah, formatRupiahShort, toPercent } from '@/lib/format';
 import type { OperatorTabParams } from '@/navigation/types';
 import { useApp } from '@/store/AppContext';
+import { useTheme } from '@/theme/ThemeProvider';
+import { colors, shadows } from '@/tokens/tokens';
 import { CollectRow } from './CollectRow';
 import { useOperatorData } from './useOperatorData';
 
@@ -28,26 +30,6 @@ export function OperatorHome() {
   const outstanding = list.filter((c) => billFor.get(c.id)?.status !== 'lunas').length;
   // Beban kerja petugas diukur cakupan wilayah, bukan target rupiah (keputusan dinas).
   const covered = list.length - outstanding;
-
-  const menu: HomeMenuItem[] = [
-    { label: 'Rute', icon: 'route', onPress: () => nav.navigate('Rute', { screen: 'OperatorRute' }) },
-    {
-      label: 'Penagihan',
-      icon: 'wallet',
-      badge: outstanding,
-      onPress: () => nav.navigate('Tagih', { screen: 'OperatorPenagihan' }),
-    },
-    {
-      label: 'Verifikasi',
-      icon: 'qr',
-      onPress: () => nav.navigate('Beranda', { screen: 'OperatorVerifikasi' }),
-    },
-    {
-      label: 'Setor kas',
-      icon: 'receipt',
-      onPress: () => nav.navigate('Beranda', { screen: 'OperatorSetor' }),
-    },
-  ];
 
   return (
     <HeroScaffold
@@ -74,7 +56,22 @@ export function OperatorHome() {
         </>
       }
     >
-      <HomeMenu items={menu} />
+      {/* Rute dan Penagihan sudah jadi tab di bilah bawah; menyisakan keduanya di menu
+          hanya menggandakan pintu. Yang unik tinggal dua, jadi muat sebagai kartu berketerangan. */}
+      <View className="flex-row gap-3">
+        <ActionCard
+          icon="qr"
+          title="Verifikasi"
+          hint="Pengajuan tunai"
+          onPress={() => nav.navigate('Beranda', { screen: 'OperatorVerifikasi' })}
+        />
+        <ActionCard
+          icon="receipt"
+          title="Setor kas"
+          hint={`${formatRupiah(cash.total)} siap`}
+          onPress={() => nav.navigate('Beranda', { screen: 'OperatorSetor' })}
+        />
+      </View>
 
       <View className="flex-row gap-3">
         <View className="flex-1">
@@ -85,7 +82,13 @@ export function OperatorHome() {
           />
         </View>
         <View className="flex-1">
-          <StatCard label="Sisa tagihan" value={`${outstanding} pelanggan`} icon="receipt" />
+          {/* Angka tunggakan memang milik statistik ini, bukan sudut ikon menu. */}
+          <StatCard
+            label="Sisa tagihan"
+            value={`${outstanding} pelanggan`}
+            icon="receipt"
+            badge={outstanding > 0 ? String(outstanding) : undefined}
+          />
         </View>
       </View>
 
@@ -106,11 +109,56 @@ export function OperatorHome() {
         })}
       </View>
 
-      <Text className="px-1 text-[11px] leading-snug text-dim">
-        {zones.length} zona dalam tanggung jawab Anda. Kas di tangan berkurang setelah setoran
-        disetujui admin, bukan saat diajukan.
-      </Text>
+      <Note zones={zones.length} />
     </HeroScaffold>
+  );
+}
+
+/** Pintu aksi lapangan: ikon bisu diberi judul dan keterangan isinya. */
+function ActionCard({
+  icon,
+  title,
+  hint,
+  onPress,
+}: {
+  icon: IconName;
+  title: string;
+  hint: string;
+  onPress: () => void;
+}) {
+  const { mode } = useTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${title}, ${hint}`}
+      onPress={onPress}
+      className="flex-1 flex-row items-center gap-3 rounded-[22px] bg-surface px-4 py-[18px]"
+      style={({ pressed }) => [shadows.pop, pressed ? { opacity: 0.85 } : undefined]}
+    >
+      <View className="h-[46px] w-[46px] items-center justify-center rounded-full bg-pill">
+        <Icon name={icon} size={22} color={colors[mode].olive} />
+      </View>
+      <View className="flex-1">
+        <Text className="text-[13px] font-extrabold text-ink">{title}</Text>
+        <Text className="mt-0.5 text-[11px] text-dim">{hint}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+/** Aturan kas di kotak info, bukan teks lepas yang mengambang di bawah daftar. */
+function Note({ zones }: { zones: number }) {
+  const { mode } = useTheme();
+
+  return (
+    <View className="mb-2 flex-row items-start gap-2.5 rounded-xl bg-surface2 px-3.5 py-3">
+      <Icon name="info" size={15} color={colors[mode].olive} />
+      <Text className="flex-1 text-[11.5px] leading-relaxed text-dim">
+        {zones} zona dalam tanggung jawab Anda. Kas di tangan berkurang setelah setoran disetujui
+        admin, bukan saat diajukan.
+      </Text>
+    </View>
   );
 }
 
@@ -122,7 +170,7 @@ function Coverage({ covered, total }: { covered: number; total: number }) {
   const pct = toPercent(covered, total);
 
   return (
-    <View className="mt-6">
+    <View className="mt-[22px]">
       <View className="mb-1.5 flex-row items-center justify-between">
         <Text className="font-sans text-[11px] font-semibold uppercase tracking-wide text-white/70">
           Cakupan penagihan

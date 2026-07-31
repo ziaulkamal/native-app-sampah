@@ -40,30 +40,36 @@ export function PelangganAduan() {
 
   return (
     <ScreenScaffold>
-      <SubScreenHeader title="Aduan Saya" />
-
-      <Button
-        label="Buat Aduan"
-        full
-        icon={<Icon name="plus" size={20} color="#fff" />}
-        onPress={openForm}
+      {/* Tombolnya jadi aksi header: selebar layar ia terbaca seperti banner dan
+          mendorong daftar — isi utama layar ini — turun satu blok penuh. */}
+      <SubScreenHeader
+        eyebrow="Layanan"
+        title="Aduan Saya"
+        action={
+          <Button
+            label="Buat Aduan"
+            size="sm"
+            icon={<Icon name="plus" size={16} color="#fff" />}
+            onPress={openForm}
+          />
+        }
       />
 
       <View className="gap-3">
         {shown.map((a) => {
           const st = COMPLAINT_STATUS[a.status];
           return (
+            // Meta dulu, baru judul: tanggal dan status sama-sama metadata, dan judul
+            // yang berdiri sendiri tak lagi terpotong ellipsis oleh badge di sampingnya.
             <View key={a.id} className="rounded-xl2 bg-surface p-4 shadow-card">
               <View className="flex-row items-center justify-between gap-2">
-                <Text className="flex-1 text-[14px] font-bold text-ink" numberOfLines={1}>
-                  {a.type}
-                </Text>
+                <Text className="text-[11px] text-dim">{a.createdAt}</Text>
                 <Badge label={st.label} tone={st.tone} />
               </View>
-              <Text className="mt-1.5 text-[12.5px] leading-relaxed text-ink/80">
+              <Text className="mt-2 text-[14px] font-bold text-ink">{a.type}</Text>
+              <Text className="mt-1 text-[12.5px] leading-relaxed text-ink/80">
                 {a.description}
               </Text>
-              <Text className="mt-2 text-[11px] text-dim">{a.createdAt}</Text>
             </View>
           );
         })}

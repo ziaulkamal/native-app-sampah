@@ -28,7 +28,7 @@ const fg: Record<BadgeTone, string> = {
 export function Badge({ label, tone = 'neutral' }: BadgeProps) {
   return (
     <View className={`self-start rounded-full px-2.5 py-1 ${bg[tone]}`}>
-      <Text className={`font-sans font-bold text-[10px] tracking-wide ${fg[tone]}`}>{label}</Text>
+      <Text className={`font-sans font-bold text-[10.5px] tracking-wide ${fg[tone]}`}>{label}</Text>
     </View>
   );
 }

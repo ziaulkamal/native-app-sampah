@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { ScreenScaffold } from '@/components/layout/ScreenScaffold';
+import { ScreenTitle } from '@/components/layout/ScreenTitle';
 import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
 import { ProgressBar } from '@/components/ui/ProgressBar';
@@ -22,29 +23,11 @@ export function OperatorRute() {
   const { items: shownZones, bind } = usePagination(zones);
 
   const header = (
-    <View className="flex-row items-center justify-between">
-      <View className="flex-1">
-        <Text className="text-[9.5px] font-semibold uppercase tracking-wider text-olive">
-          Operator Restribusi
-        </Text>
-        <Text className="text-[20px] font-extrabold text-ink">Rute Saya</Text>
-      </View>
-      <View className="flex-row rounded-xl bg-pill p-1">
-        {(['list', 'map'] as const).map((v) => (
-          <Pressable
-            key={v}
-            onPress={() => setView(v)}
-            accessibilityRole="button"
-            accessibilityState={{ selected: view === v }}
-            className={`rounded-lg px-3 py-1.5 ${view === v ? 'bg-surface shadow-card' : ''}`}
-          >
-            <Text className={`text-[12px] font-semibold ${view === v ? 'text-ink' : 'text-dim'}`}>
-              {v === 'list' ? 'Zona' : 'Peta'}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-    </View>
+    <ScreenTitle
+      eyebrow="Operator Retribusi"
+      title="Rute Saya"
+      action={<Segmented value={view} onChange={setView} />}
+    />
   );
 
   // Peta memakan gestur geser, jadi tampilan peta melepas gulir layar dan mengisi
@@ -74,6 +57,44 @@ export function OperatorRute() {
   );
 }
 
+/** Pemilih Zona/Peta. Ubinnya 40dp — 30dp sebelumnya di bawah target sentuh repo ini. */
+function Segmented({ value, onChange }: { value: View2; onChange: (v: View2) => void }) {
+  const { mode } = useTheme();
+
+  return (
+    <View className="flex-row rounded-xl bg-pill p-1">
+      {(
+        [
+          { id: 'list', label: 'Zona', icon: 'bars' },
+          { id: 'map', label: 'Peta', icon: 'pin' },
+        ] as const
+      ).map((seg) => {
+        const on = value === seg.id;
+        return (
+          <Pressable
+            key={seg.id}
+            onPress={() => onChange(seg.id)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on }}
+            className={`h-10 flex-row items-center gap-1.5 rounded-lg px-3.5 ${
+              on ? 'bg-surface shadow-card' : ''
+            }`}
+          >
+            <Icon
+              name={seg.icon}
+              size={14}
+              color={on ? colors[mode].text : colors[mode]['text-dim']}
+            />
+            <Text className={`text-[12.5px] font-semibold ${on ? 'text-ink' : 'text-dim'}`}>
+              {seg.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 function ZoneCard({
   name,
   paid,
@@ -85,13 +106,14 @@ function ZoneCard({
   total: number;
   pct: number;
 }) {
-  const { mode } = useTheme();
+  // Bar olive seragam menyembunyikan zona yang tertinggal; di bawah separuh ia jadi warning.
+  const behind = pct < 50;
+
   return (
     <View className="rounded-xl2 bg-surface p-4 shadow-card">
+      {/* Ikon pin yang sama di tiap kartu tak membedakan apa-apa — ruangnya diberikan
+          ke angka persen, data yang sebenarnya dicari petugas. */}
       <View className="flex-row items-center gap-3">
-        <View className="h-10 w-10 items-center justify-center rounded-xl bg-pill">
-          <Icon name="pin" size={20} color={colors[mode].olive} />
-        </View>
         <View className="flex-1">
           <Text className="text-[14px] font-bold text-ink" numberOfLines={1}>
             {name}
@@ -100,10 +122,12 @@ function ZoneCard({
             {paid}/{total} pelanggan lunas
           </Text>
         </View>
-        <Text className="text-[14px] font-extrabold text-olive">{pct}%</Text>
+        <Text className={`text-[17px] font-extrabold ${behind ? 'text-warning' : 'text-olive'}`}>
+          {pct}%
+        </Text>
       </View>
       <View className="mt-3">
-        <ProgressBar value={pct} />
+        <ProgressBar value={pct} tone={behind ? 'warning' : 'olive'} />
       </View>
     </View>
   );

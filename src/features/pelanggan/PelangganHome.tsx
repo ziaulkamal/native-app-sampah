@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import {
   greetingNow,
   HeroAmount,
@@ -12,6 +13,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
+import { Modal } from '@/components/ui/Modal';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { NotificationBell } from '@/features/notifikasi/NotificationBell';
 import { HomeMenu, type HomeMenuItem } from '@/features/shared/HomeMenu';
@@ -20,6 +22,7 @@ import { formatRupiah } from '@/lib/format';
 import {
   CUSTOMER_STATUS,
   golonganName,
+  LOCATION_KIND,
   SCHEME_LABEL,
   SCHEME_SUFFIX,
   WEEKDAYS,
@@ -28,8 +31,7 @@ import type { PelangganTabParams } from '@/navigation/types';
 import { useApp } from '@/store/AppContext';
 import { useTheme } from '@/theme/ThemeProvider';
 import { colors, shadows } from '@/tokens/tokens';
-import type { Bill, Weekday } from '@/types';
-import { LocationSwitcher } from './LocationSwitcher';
+import type { Bill, Customer, Weekday } from '@/types';
 import { useActiveLocation } from './useActiveLocation';
 
 type Nav = NavigationProp<PelangganTabParams>;
@@ -40,6 +42,7 @@ export function PelangganHome() {
   const { active: customer, locations, billsForActive, select } = useActiveLocation();
   const nav = useNavigation<Nav>();
   const { mode } = useTheme();
+  const [switching, setSwitching] = useState(false);
 
   if (customer === undefined) return <NoProfile loading={dataState === 'loading'} />;
 
@@ -50,28 +53,13 @@ export function PelangganHome() {
   const outstanding = unpaid.reduce((sum, b) => sum + b.amount + b.penalty, 0);
   const paidThisYear = sumPaidThisYear(billsForActive);
 
+  // Hanya pintu yang tak ada di bilah bawah. Bayar, Tagihan, Jadwal, dan Profil sudah
+  // jadi tab — mengulangnya di sini hanya memperbanyak yang harus dipindai.
   const menu: HomeMenuItem[] = [
-    // `pay` membuka sheet pembayaran begitu layar tagihan tampil — tagihan terlamalah
-    // yang boleh dibayar, dan layar itu sudah tahu yang mana.
-    {
-      label: 'Bayar',
-      icon: 'wallet',
-      onPress: () => nav.navigate('Tagihan', { screen: 'PelangganTagihan', params: { pay: true } }),
-    },
-    {
-      label: 'Tagihan',
-      icon: 'receipt',
-      onPress: () => nav.navigate('Tagihan', { screen: 'PelangganTagihan' }),
-    },
     {
       label: 'Riwayat',
       icon: 'bars',
       onPress: () => nav.navigate('Tagihan', { screen: 'PelangganRiwayat' }),
-    },
-    {
-      label: 'Jadwal',
-      icon: 'calendar',
-      onPress: () => nav.navigate('Jadwal', { screen: 'PelangganJadwal' }),
     },
     {
       label: 'Aduan',
@@ -83,7 +71,6 @@ export function PelangganHome() {
       icon: 'pin',
       onPress: () => nav.navigate('Beranda', { screen: 'TambahLokasi' }),
     },
-    { label: 'Profil', icon: 'user', onPress: () => nav.navigate('Profil', { screen: 'Profil' }) },
     { label: 'Akun', icon: 'settings', onPress: () => nav.navigate('Profil', { screen: 'Akun' }) },
   ];
 
@@ -92,9 +79,7 @@ export function PelangganHome() {
       hero={
         <>
           <HeroGreeting
-            avatar={
-              <Avatar name={customer.name} src={session?.avatarUrl ?? undefined} size={44} />
-            }
+            avatar={<Avatar name={customer.name} src={session?.avatarUrl ?? undefined} size={44} />}
             greeting={greetingNow()}
             name={customer.name}
             right={<NotificationBell onHero />}
@@ -103,22 +88,25 @@ export function PelangganHome() {
             label={outstanding > 0 ? 'Total belum dibayar' : 'Tak ada tunggakan'}
             amount={formatRupiah(outstanding).replace('Rp', '').trim()}
           />
-          <HeroPill icon="pin" label={`Titik: ${customer.name} · ${zone?.name ?? 'Belum berzona'}`} />
+          {/* Kapsulnya sekaligus pintu ganti titik — chevron baru muncul kalau memang
+              ada titik lain untuk dipilih. */}
+          <HeroPill
+            icon="pin"
+            label={`Titik: ${customer.name} · ${zone?.name ?? 'Belum berzona'}`}
+            onPress={locations.length > 1 ? () => setSwitching(true) : undefined}
+          />
         </>
       }
     >
       <HomeMenu items={menu} />
 
-      {/* Pemilih titik hanya muncul kalau memang ada yang bisa dipilih; kapsul di kepala
-          menyebutkan titik yang sedang aktif, kartu ini yang menggantinya. */}
-      {locations.length > 1 && (
-        <LocationSwitcher locations={locations} activeId={customer.id} onSelect={select} />
-      )}
-
       <WeekStrip days={zone?.schedule.days ?? []} />
 
-      <View className="flex-row rounded-[22px] bg-surface p-4" style={shadows.card}>
-        <SplitHalf label={`Dibayar ${new Date().getFullYear()}`} value={formatRupiah(paidThisYear)} />
+      <View className="flex-row rounded-xl2 bg-surface p-4" style={shadows.card}>
+        <SplitHalf
+          label={`Dibayar ${new Date().getFullYear()}`}
+          value={formatRupiah(paidThisYear)}
+        />
         <View className="w-px bg-line" />
         <SplitHalf
           label="Tunggakan"
@@ -142,41 +130,100 @@ export function PelangganHome() {
         </View>
       </View>
 
-      <View className="flex-row items-center gap-2 px-1">
-        <Icon name="info" size={14} color={colors[mode]['text-dim']} />
-        <Text className="flex-1 text-[11px] leading-snug text-dim">
+      {/* Berlatar supaya terbaca sebagai aturan resmi, bukan keterangan yang tercecer. */}
+      <View className="mb-2 flex-row items-start gap-2.5 rounded-xl bg-surface2 px-3.5 py-3">
+        <Icon name="info" size={15} color={colors[mode].olive} />
+        <Text className="flex-1 text-[11.5px] leading-relaxed text-dim">
           Tagihan dilunasi berurutan dari yang terlama — itu aturan yang ditegakkan server.
         </Text>
       </View>
+
+      <Modal open={switching} onClose={() => setSwitching(false)} title="Ganti titik layanan">
+        {locations.map((loc) => (
+          <LocationRow
+            key={loc.id}
+            location={loc}
+            active={loc.id === customer.id}
+            onPress={() => {
+              select(loc.id);
+              setSwitching(false);
+            }}
+          />
+        ))}
+      </Modal>
     </HeroScaffold>
   );
 }
 
-/** Empat hari terdekat pekan ini; hari angkut diberi warna, sisanya tetap terlihat. */
+/** Satu titik layanan di sheet pemilih; yang aktif ditandai centang, bukan hanya warna. */
+function LocationRow({
+  location,
+  active,
+  onPress,
+}: {
+  location: Customer;
+  active: boolean;
+  onPress: () => void;
+}) {
+  const { mode } = useTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      className={`flex-row items-center gap-3 rounded-xl2 border px-4 py-3 ${
+        active ? 'border-olive bg-pill' : 'border-line bg-surface'
+      }`}
+      style={({ pressed }) => (pressed ? { opacity: 0.7 } : undefined)}
+    >
+      <Icon name="pin" size={18} color={colors[mode][active ? 'olive' : 'text-dim']} />
+      <View className="flex-1">
+        <Text className="text-[13px] font-bold text-ink" numberOfLines={1}>
+          {location.label}
+        </Text>
+        <Text className="mt-0.5 text-[11px] text-dim">{LOCATION_KIND[location.kind]}</Text>
+      </View>
+      {active && <Icon name="check" size={18} color={colors[mode].olive} />}
+    </Pressable>
+  );
+}
+
+/** Empat hari terdekat pekan ini; hari angkut diberi warna, hari ini diberi ring lime. */
 function WeekStrip({ days }: { days: Weekday[] }) {
+  const { mode } = useTheme();
   const week = weekDates();
   // Selalu empat ubin: kalau hari ini sudah Jumat, yang ditampilkan empat hari terakhir
   // pekan — menggeser jendela lebih berguna daripada memotongnya jadi satu ubin.
-  const start = Math.min(Math.max(week.findIndex((d) => d.isToday), 0), week.length - 4);
+  const start = Math.min(
+    Math.max(
+      week.findIndex((d) => d.isToday),
+      0,
+    ),
+    week.length - 4,
+  );
 
   return (
     <View>
-      <Text className="mb-2.5 px-1 text-[12.5px] font-extrabold text-ink">Angkut pekan ini</Text>
+      <Text className="mb-2.5 px-1 text-[14px] font-extrabold text-ink">Angkut pekan ini</Text>
       <View className="flex-row gap-2.5">
         {week.slice(start, start + 4).map((day, i) => {
           const index = start + i;
           const angkut = days.includes(WEEKDAYS[index].id);
+          // Empat ubin yang identik tak menyebut hari ini yang mana; ring lime menyebutnya
+          // tanpa menambah baris teks.
+          const ring = day.isToday ? { borderWidth: 2, borderColor: colors[mode].lime } : undefined;
+          const accent =
+            day.isToday && angkut ? 'text-lime' : angkut ? 'text-white/75' : 'text-dim';
           return (
             <View
               key={day.iso}
               className={`flex-1 items-center rounded-[14px] py-3 ${
                 angkut ? 'bg-olive' : 'bg-surface'
               }`}
-              style={angkut ? undefined : shadows.card}
+              style={[angkut ? undefined : shadows.card, ring]}
             >
-              <Text
-                className={`text-[10.5px] font-bold uppercase ${angkut ? 'text-white/75' : 'text-dim'}`}
-              >
+              <Text className={`text-[10.5px] font-bold uppercase ${accent}`}>
                 {WEEKDAYS[index].short}
               </Text>
               <Text
@@ -184,11 +231,7 @@ function WeekStrip({ days }: { days: Weekday[] }) {
               >
                 {day.label.split(' ')[0]}
               </Text>
-              <Text
-                className={`mt-0.5 text-[9.5px] font-semibold ${
-                  angkut ? 'text-white/75' : 'text-dim'
-                }`}
-              >
+              <Text className={`mt-0.5 text-[10.5px] font-semibold ${accent}`}>
                 {angkut ? 'Angkut' : '—'}
               </Text>
             </View>
@@ -213,7 +256,7 @@ function SplitHalf({
 }) {
   return (
     <View className="flex-1 px-2">
-      <Text className="text-[10.5px] font-semibold uppercase tracking-wide text-dim">{label}</Text>
+      <Text className="text-[11px] font-semibold uppercase tracking-wide text-dim">{label}</Text>
       <Text
         className={`mt-1 text-[17px] font-extrabold ${danger === true ? 'text-danger' : 'text-ink'}`}
         numberOfLines={1}

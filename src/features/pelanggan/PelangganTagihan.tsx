@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Text, View } from 'react-native';
 import { ScreenScaffold } from '@/components/layout/ScreenScaffold';
+import { ScreenTitle } from '@/components/layout/ScreenTitle';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -51,12 +52,7 @@ export function PelangganTagihan({ route, navigation }: Props) {
 
   return (
     <ScreenScaffold>
-      <View>
-        <Text className="text-[9.5px] font-semibold uppercase tracking-wider text-olive">
-          Retribusi
-        </Text>
-        <Text className="text-[20px] font-extrabold text-ink">Tagihan Saya</Text>
-      </View>
+      <ScreenTitle eyebrow="Retribusi" title="Tagihan Saya" />
 
       {locations.length > 1 && active !== undefined && (
         <LocationSwitcher locations={locations} activeId={active.id} onSelect={select} />
@@ -133,41 +129,62 @@ export function PelangganTagihan({ route, navigation }: Props) {
 /** Baris tagihan; tombol Bayar untuk yang belum lunas. */
 function BillRow({ bill, onPay, blocked }: { bill: Bill; onPay?: () => void; blocked?: boolean }) {
   const badge = BILL_BADGE[bill.status];
-  const paid = bill.status === 'lunas';
+  const total = formatRupiah(bill.amount + bill.penalty);
+  const { mode } = useTheme();
+
+  // Yang lunas cukup satu baris: statusnya sudah diucapkan badge bercentang di samping
+  // nominal, jadi tak perlu baris aksi kedua yang mengulanginya.
+  if (bill.status === 'lunas') {
+    return (
+      <View className="flex-row items-center gap-3 rounded-xl2 bg-surface p-3.5 shadow-card">
+        <View className="flex-1">
+          <Text className="text-[14px] font-bold text-ink">Retribusi {bill.period}</Text>
+          <Text className="mt-0.5 text-[11.5px] text-dim">Lunas · {bill.paidAt}</Text>
+        </View>
+        <View className="items-end gap-1">
+          <Text className="text-[15px] font-extrabold text-ink">{total}</Text>
+          <View className="flex-row items-center gap-1 rounded-full bg-success/10 px-2.5 py-1">
+            <Icon name="check" size={12} color={semantic.success} />
+            <Text className="font-sans text-[10.5px] font-bold tracking-wide text-success">
+              Lunas
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View className="rounded-xl2 bg-surface p-3.5 shadow-card">
-      <View className="flex-row items-center gap-3">
+      <View className="flex-row items-start gap-3">
         <View className="flex-1">
           <Text className="text-[14px] font-bold text-ink">Retribusi {bill.period}</Text>
-          <Text className="mt-0.5 text-[11.5px] text-dim">
-            {paid ? `Lunas · ${bill.paidAt}` : `Jatuh tempo ${bill.dueDate}`}
-          </Text>
+          <Text className="mt-0.5 text-[11.5px] text-dim">Jatuh tempo {bill.dueDate}</Text>
+        </View>
+        <Badge label={badge.label} tone={badge.tone} />
+      </View>
+      <View className="mt-3 flex-row items-center justify-between gap-3">
+        <View>
+          <Text className="text-[17px] font-extrabold text-ink">{total}</Text>
+          {/* Denda menempel pada nominal, bukan pada tanggal: ia bagian dari yang dibayar. */}
           {bill.penalty > 0 && (
             <Text className="mt-0.5 text-[11.5px] font-semibold text-danger">
               Termasuk denda {formatRupiah(bill.penalty)}
             </Text>
           )}
         </View>
-        <Badge label={badge.label} tone={badge.tone} />
-      </View>
-      <View className="mt-3 flex-row items-center justify-between">
-        <Text className="text-[15px] font-extrabold text-ink">
-          {formatRupiah(bill.amount + bill.penalty)}
-        </Text>
-        {paid ? (
-          <View className="flex-row items-center gap-1.5">
-            <Icon name="check" size={17} color={semantic.success} />
-            <Text className="text-[12.5px] font-semibold text-success">Lunas</Text>
+        {blocked === true ? (
+          // Tombol pudar terbaca "rusak" oleh orang awam; alasan terkuncinya ditulis saja.
+          <View className="max-w-[58%] flex-row items-center gap-1.5">
+            <Icon name="lock" size={14} color={colors[mode]['text-dim']} />
+            <Text className="flex-1 text-[11.5px] text-dim">Lunasi tagihan terlama lebih dulu</Text>
           </View>
         ) : (
           <Button
             label="Bayar"
             size="sm"
             onPress={onPay}
-            disabled={blocked}
             icon={<Icon name="wallet" size={16} color="#fff" />}
-            accessibilityHint={blocked ? 'Lunasi tagihan terlama lebih dulu' : undefined}
           />
         )}
       </View>

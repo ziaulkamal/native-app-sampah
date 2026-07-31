@@ -28,7 +28,7 @@ export function OperatorVerifikasi() {
 
   return (
     <ScreenScaffold>
-      <SubScreenHeader title="Verifikasi Pembayaran" />
+      <SubScreenHeader eyebrow="Operator Retribusi" title="Verifikasi Pembayaran" />
 
       <PengajuanTunai />
 

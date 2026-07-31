@@ -13,14 +13,37 @@ import { formatRupiah } from '@/lib/format';
 import { usePagination } from '@/lib/pagination';
 import { useApp } from '@/store/AppContext';
 import { useTheme } from '@/theme/ThemeProvider';
-import { colors } from '@/tokens/tokens';
+import { colors, semantic } from '@/tokens/tokens';
 import type { Deposit } from '@/types';
 import { useOperatorData } from './useOperatorData';
 
-const statusLook: Record<Deposit['status'], { label: string; tone: BadgeTone; icon: IconName }> = {
-  diajukan: { label: 'Menunggu ACC', tone: 'warning', icon: 'bell' },
-  diterima: { label: 'Diterima', tone: 'success', icon: 'check' },
-  ditolak: { label: 'Ditolak', tone: 'danger', icon: 'x' },
+// `tint`/`fg` melengkapi badge: ikon olive netral membuat status hanya terbaca dari
+// pill kecil di sebelahnya.
+const statusLook: Record<
+  Deposit['status'],
+  { label: string; tone: BadgeTone; icon: IconName; tint: string; fg: string }
+> = {
+  diajukan: {
+    label: 'Menunggu ACC',
+    tone: 'warning',
+    icon: 'bell',
+    tint: 'bg-warning/10',
+    fg: semantic.warning,
+  },
+  diterima: {
+    label: 'Diterima',
+    tone: 'success',
+    icon: 'check',
+    tint: 'bg-success/10',
+    fg: semantic.success,
+  },
+  ditolak: {
+    label: 'Ditolak',
+    tone: 'danger',
+    icon: 'x',
+    tint: 'bg-danger/10',
+    fg: semantic.danger,
+  },
 };
 
 /** Setor kas hasil penagihan ke dinas + riwayat setoran. Sub-screen. */
@@ -53,7 +76,7 @@ export function OperatorSetor() {
 
   return (
     <ScreenScaffold>
-      <SubScreenHeader title="Setor Retribusi" />
+      <SubScreenHeader eyebrow="Operator Retribusi" title="Setor Retribusi" />
 
       <LinearGradient
         // Sudut 150° web didekati dengan start/end diagonal; RN tak menerima sudut derajat.
@@ -74,7 +97,15 @@ export function OperatorSetor() {
             pegang sampai setoran diterima.
           </Text>
         )}
-        <View className="mt-4">
+        {/* Ketiganya menerangkan angka besar di atasnya. Sebagai ubin sepertiga lebar,
+            "Rp1.250.000" dan labelnya berdesakan di ~110dp; sebagai baris ia sejajar. */}
+        <View className="mt-3.5 gap-2 border-t border-white/15 pt-3">
+          <CashLine label="Terkumpul hari ini" amount={collectedToday} />
+          <CashLine label="Menunggu ACC" amount={cash.pendingApproval} />
+          <CashLine label="Diterima dinas" amount={cash.deposited} />
+        </View>
+
+        <View className="mt-3.5">
           <Button
             label={
               waiting
@@ -89,12 +120,6 @@ export function OperatorSetor() {
           />
         </View>
       </LinearGradient>
-
-      <View className="flex-row gap-3">
-        <CashTile label="Terkumpul hari ini" amount={collectedToday} />
-        <CashTile label="Menunggu ACC" amount={cash.pendingApproval} />
-        <CashTile label="Diterima dinas" amount={cash.deposited} />
-      </View>
 
       <View className="gap-3">
         <SectionHeader title="Riwayat setor" />
@@ -117,39 +142,40 @@ export function OperatorSetor() {
   );
 }
 
-function CashTile({ label, amount }: { label: string; amount: number }) {
+function CashLine({ label, amount }: { label: string; amount: number }) {
   return (
-    <View className="flex-1 rounded-xl2 bg-surface p-3.5 shadow-card">
-      <Text className="text-[14px] font-extrabold leading-tight text-ink">
-        {formatRupiah(amount)}
-      </Text>
-      <Text className="mt-1 text-[10.5px] leading-snug text-dim">{label}</Text>
+    <View className="flex-row items-center justify-between gap-3">
+      <Text className="text-[12px] text-white/75">{label}</Text>
+      <Text className="text-[12.5px] font-bold text-white">{formatRupiah(amount)}</Text>
     </View>
   );
 }
 
 function DepositRow({ deposit }: { deposit: Deposit }) {
-  const { mode } = useTheme();
   const look = statusLook[deposit.status];
 
   return (
     <View className="flex-row items-start gap-3 rounded-xl2 bg-surface p-3.5 shadow-card">
-      <View className="h-10 w-10 items-center justify-center rounded-xl bg-pill">
-        <Icon name={look.icon} size={20} color={colors[mode].olive} />
+      <View className={`h-10 w-10 items-center justify-center rounded-xl ${look.tint}`}>
+        <Icon name={look.icon} size={20} color={look.fg} />
       </View>
       <View className="flex-1">
         <View className="flex-row items-center gap-2">
-          <Text className="text-[14px] font-bold text-ink">{formatRupiah(deposit.amount)}</Text>
+          <Text className="text-[15px] font-extrabold text-ink">
+            {formatRupiah(deposit.amount)}
+          </Text>
           <Badge label={look.label} tone={look.tone} />
         </View>
-        <Text className="mt-0.5 font-mono text-[11px] text-dim">{deposit.ref}</Text>
+        {/* Tanggal ikut baris ref; sebagai kolom kanan tersendiri barisnya tampak berlubang. */}
+        <Text className="mt-0.5 font-mono text-[11px] text-dim">
+          {deposit.ref} · {deposit.date}
+        </Text>
         {deposit.rejectionNote !== undefined && (
           <Text className="mt-1.5 text-[11.5px] leading-snug text-danger">
             Ditolak: {deposit.rejectionNote}
           </Text>
         )}
       </View>
-      <Text className="text-[11.5px] text-dim">{deposit.date}</Text>
     </View>
   );
 }
