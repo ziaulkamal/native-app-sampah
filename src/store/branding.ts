@@ -20,7 +20,7 @@ export interface Branding {
  */
 export const BRANDING_FALLBACK: Branding = {
   appName: 'Si Mudah',
-  tagline: 'Apps Restribusi DLH',
+  tagline: 'Management Restribusi DLH',
   description: null,
   footerCredit: null,
   logoUrl: null,

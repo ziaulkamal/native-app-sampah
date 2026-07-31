@@ -1,159 +1,181 @@
 // @ts-check
 /**
- * Membangkitkan aset ikon & splash dari lambang yang sama dengan `BrandMark`.
+ * Membangkitkan aset ikon & splash dari lambang Pemkab Aceh Barat Daya.
  *
- * Kenapa digambar, bukan disimpan sebagai PNG jadi: lambangnya sudah hidup sebagai path
- * SVG di `src/components/ui/Icon.tsx` (`trash`) dan warnanya di `palette.json`. Menyalin
- * hasil ekspor ke repo membuat dua sumber kebenaran yang diam-diam bisa berbeda; skrip
- * ini menurunkan keduanya dari sumber yang sama, dan tak menambah dependensi apa pun
- * (rasterizer kecil + encoder PNG zlib, keduanya di bawah).
+ * Sumbernya satu berkas — `assets/brand/logo-abdya.png`, lambang resmi yang juga dipakai
+ * layar pembuka — supaya ikon peluncur, ikon splash native, dan splash JS tak pernah
+ * berbeda gambar. Yang dikerjakan skrip ini hanya menyusutkan dan memberi bantalan;
+ * tanpa dependensi apa pun (dekoder + encoder PNG zlib, keduanya di bawah).
  *
  * Jalankan: pnpm gen:icons
  */
-import { deflateSync } from 'node:zlib';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { deflateSync, inflateSync } from 'node:zlib';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const assets = join(root, 'assets');
 
-const OLIVE_DEEP = '#3C4715';
-const LIME = '#C9E24A';
-const OLIVE = '#5A6A1E';
 const BG_LIGHT = '#EDEBE4';
-const BG_DARK = '#141410';
-
-// --- Lambang -----------------------------------------------------------------
-
-/** Tebal garis pada viewBox 24 — sama dengan `strokeWidth` di komponen Icon. */
-const STROKE = 1.8;
-
-/** Busur seperempat lingkaran jadi rangkaian tali; 8 potong sudah mulus di 1024px. */
-function arc(cx, cy, r, from, to, steps = 8) {
-  const pts = [];
-  for (let i = 0; i <= steps; i += 1) {
-    const a = from + ((to - from) * i) / steps;
-    pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
-  }
-  return pts;
-}
-
-/**
- * Path `trash` diterjemahkan jadi polyline pada viewBox 24×24.
- * Sudut bawah tong yang di SVG berupa `a1 1 0 001 1` diganti busur bersudut sama.
- */
-function glyph() {
-  const P = Math.PI;
-  const body = [
-    [6.5, 7],
-    [7.4, 19],
-    ...arc(8.4, 19, 1, P, P / 2),
-    [15.6, 20],
-    ...arc(15.6, 19, 1, P / 2, 0),
-    [17.5, 7],
-  ];
-  return [
-    [
-      [4, 7],
-      [20, 7],
-    ],
-    body,
-    [
-      [9, 7],
-      [9, 4],
-      [15, 4],
-      [15, 7],
-    ],
-    [
-      [10, 11],
-      [10, 17],
-    ],
-    [
-      [14, 11],
-      [14, 17],
-    ],
-  ];
-}
-
-/** Jarak titik ke ruas garis — kapsulnya yang memberi ujung & sambungan bulat gratis. */
-function distToSegment(px, py, ax, ay, bx, by) {
-  const dx = bx - ax;
-  const dy = by - ay;
-  const len2 = dx * dx + dy * dy;
-  const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2));
-  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
-}
-
-// --- Raster ------------------------------------------------------------------
 
 function parseHex(hex) {
   const n = parseInt(hex.slice(1), 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
-/**
- * Menggambar lambang di tengah kanvas persegi.
- *
- * @param {number} size    sisi kanvas dalam piksel
- * @param {number} box     sisi viewBox 24 setelah diskalakan, dalam piksel
- * @param {string} ink     warna garis
- * @param {string|null} bg warna latar; `null` berarti transparan
- */
-function render(size, box, ink, bg) {
-  const strokes = glyph();
-  const [ir, ig, ib] = parseHex(ink);
-  const back = bg === null ? null : parseHex(bg);
-  const half = STROKE / 2;
-  const scale = box / 24;
-  const offset = (size - box) / 2;
-  const SS = 4; // 4×4 supersample: cukup untuk tepi bersih tanpa bikin skrip lambat
+// --- Dekoder PNG -------------------------------------------------------------
 
-  // Cakupan dikumpulkan per kapsul di dalam kotak batasnya saja. Menyapu seluruh kanvas
-  // untuk tiap ruas membuat skripnya berjalan menit-menitan tanpa hasil yang berbeda.
-  const cover = new Float32Array(size * size);
-  const mark = (ax, ay, bx, by) => {
-    const x0 = Math.max(0, Math.floor((Math.min(ax, bx) - half) * scale + offset));
-    const x1 = Math.min(size - 1, Math.ceil((Math.max(ax, bx) + half) * scale + offset));
-    const y0 = Math.max(0, Math.floor((Math.min(ay, by) - half) * scale + offset));
-    const y1 = Math.min(size - 1, Math.ceil((Math.max(ay, by) + half) * scale + offset));
-    for (let y = y0; y <= y1; y += 1) {
-      for (let x = x0; x <= x1; x += 1) {
-        let hits = 0;
-        for (let sy = 0; sy < SS; sy += 1) {
-          for (let sx = 0; sx < SS; sx += 1) {
-            const ux = (x + (sx + 0.5) / SS - offset) / scale;
-            const uy = (y + (sy + 0.5) / SS - offset) / scale;
-            if (distToSegment(ux, uy, ax, ay, bx, by) <= half) hits += 1;
-          }
-        }
-        const i = y * size + x;
-        const a = hits / (SS * SS);
-        if (a > cover[i]) cover[i] = a;
+/** Membaca PNG 8-bit non-interlace (RGB/RGBA) jadi buffer RGBA lurus. */
+function decode(buf) {
+  const sig = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  if (!sig.every((b, i) => buf[i] === b)) throw new Error('bukan berkas PNG');
+
+  let pos = 8;
+  let w = 0;
+  let h = 0;
+  let bpp = 0;
+  const parts = [];
+  while (pos < buf.length) {
+    const len = buf.readUInt32BE(pos);
+    const type = buf.toString('ascii', pos + 4, pos + 8);
+    const data = buf.subarray(pos + 8, pos + 8 + len);
+    pos += 12 + len;
+    if (type === 'IHDR') {
+      w = data.readUInt32BE(0);
+      h = data.readUInt32BE(4);
+      const depth = data[8];
+      const kind = data[9];
+      if (depth !== 8 || (kind !== 2 && kind !== 6) || data[12] !== 0) {
+        throw new Error(`PNG ${depth}-bit tipe ${kind} interlace ${data[12]} tak didukung`);
       }
-    }
-  };
-
-  for (const line of strokes) {
-    for (let i = 1; i < line.length; i += 1) {
-      mark(line[i - 1][0], line[i - 1][1], line[i][0], line[i][1]);
+      bpp = kind === 6 ? 4 : 3;
+    } else if (type === 'IDAT') {
+      parts.push(data);
+    } else if (type === 'IEND') {
+      break;
     }
   }
 
+  const raw = inflateSync(Buffer.concat(parts));
+  const stride = w * bpp;
+  const lines = Buffer.alloc(h * stride);
+
+  // Pembalikan filter PNG (0–4); tiap baris didahului satu byte penanda filter.
+  let r = 0;
+  for (let y = 0; y < h; y += 1) {
+    const ft = raw[r];
+    r += 1;
+    for (let i = 0; i < stride; i += 1) {
+      const a = i >= bpp ? lines[y * stride + i - bpp] : 0;
+      const b = y > 0 ? lines[(y - 1) * stride + i] : 0;
+      const c = y > 0 && i >= bpp ? lines[(y - 1) * stride + i - bpp] : 0;
+      let v = raw[r + i];
+      if (ft === 1) v += a;
+      else if (ft === 2) v += b;
+      else if (ft === 3) v += (a + b) >> 1;
+      else if (ft === 4) {
+        const p = a + b - c;
+        const pa = Math.abs(p - a);
+        const pb = Math.abs(p - b);
+        const pc = Math.abs(p - c);
+        v += pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+      } else if (ft !== 0) throw new Error(`filter PNG ${ft} tak dikenal`);
+      lines[y * stride + i] = v & 255;
+    }
+    r += stride;
+  }
+
+  if (bpp === 4) return { w, h, px: lines };
+  const px = Buffer.alloc(w * h * 4);
+  for (let i = 0; i < w * h; i += 1) {
+    px[i * 4] = lines[i * 3];
+    px[i * 4 + 1] = lines[i * 3 + 1];
+    px[i * 4 + 2] = lines[i * 3 + 2];
+    px[i * 4 + 3] = 255;
+  }
+  return { w, h, px };
+}
+
+// --- Penyusutan & penyusunan -------------------------------------------------
+
+/**
+ * Menyusutkan dengan rata-rata kotak. Warnanya dirata-ratakan setelah dikali alfa —
+ * tanpa itu piksel transparan yang warnanya sembarang ikut mengotori tepi lambang.
+ */
+function resize(src, sw, sh, dw, dh) {
+  const out = Buffer.alloc(dw * dh * 4);
+  for (let y = 0; y < dh; y += 1) {
+    const y0 = Math.floor((y * sh) / dh);
+    const y1 = Math.max(y0 + 1, Math.floor(((y + 1) * sh) / dh));
+    for (let x = 0; x < dw; x += 1) {
+      const x0 = Math.floor((x * sw) / dw);
+      const x1 = Math.max(x0 + 1, Math.floor(((x + 1) * sw) / dw));
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      let a = 0;
+      let n = 0;
+      for (let sy = y0; sy < y1; sy += 1) {
+        for (let sx = x0; sx < x1; sx += 1) {
+          const i = (sy * sw + sx) * 4;
+          const al = src[i + 3] / 255;
+          r += src[i] * al;
+          g += src[i + 1] * al;
+          b += src[i + 2] * al;
+          a += al;
+          n += 1;
+        }
+      }
+      const o = (y * dw + x) * 4;
+      if (a > 0) {
+        out[o] = Math.round(r / a);
+        out[o + 1] = Math.round(g / a);
+        out[o + 2] = Math.round(b / a);
+      }
+      out[o + 3] = Math.round((a / n) * 255);
+    }
+  }
+  return out;
+}
+
+/**
+ * Menempel lambang berukuran `box` di tengah kanvas persegi `size`.
+ *
+ * @param {number} size    sisi kanvas dalam piksel
+ * @param {number} box     sisi lambang setelah disusutkan, dalam piksel
+ * @param {{w:number,h:number,px:Buffer}} logo sumber lambang
+ * @param {string|null} bg warna latar; `null` berarti transparan
+ */
+function compose(size, box, logo, bg) {
+  const scale = box / Math.max(logo.w, logo.h);
+  const lw = Math.round(logo.w * scale);
+  const lh = Math.round(logo.h * scale);
+  const small = resize(logo.px, logo.w, logo.h, lw, lh);
+  const back = bg === null ? null : parseHex(bg);
+
   const px = Buffer.alloc(size * size * 4);
-  for (let i = 0; i < cover.length; i += 1) {
-    const a = cover[i];
-    const o = i * 4;
-    if (back === null) {
-      px[o] = ir;
-      px[o + 1] = ig;
-      px[o + 2] = ib;
-      px[o + 3] = Math.round(a * 255);
-    } else {
-      px[o] = Math.round(back[0] + (ir - back[0]) * a);
-      px[o + 1] = Math.round(back[1] + (ig - back[1]) * a);
-      px[o + 2] = Math.round(back[2] + (ib - back[2]) * a);
-      px[o + 3] = 255;
+  if (back !== null) {
+    for (let i = 0; i < size * size; i += 1) {
+      px[i * 4] = back[0];
+      px[i * 4 + 1] = back[1];
+      px[i * 4 + 2] = back[2];
+      px[i * 4 + 3] = 255;
+    }
+  }
+
+  const ox = Math.round((size - lw) / 2);
+  const oy = Math.round((size - lh) / 2);
+  for (let y = 0; y < lh; y += 1) {
+    for (let x = 0; x < lw; x += 1) {
+      const s = (y * lw + x) * 4;
+      const d = ((y + oy) * size + x + ox) * 4;
+      const a = small[s + 3] / 255;
+      if (a === 0) continue;
+      for (let k = 0; k < 3; k += 1) {
+        px[d + k] = Math.round(px[d + k] + (small[s + k] - px[d + k]) * a);
+      }
+      px[d + 3] = Math.max(px[d + 3], small[s + 3]);
     }
   }
   return px;
@@ -210,20 +232,24 @@ function png(size, pixels) {
 /**
  * `box` per aset bukan angka selera:
  * - adaptive foreground harus muat di lingkaran aman 66% kanvas, karena peluncur Android
- *   boleh memotongnya jadi lingkaran; 780 menempatkan titik terjauh lambang tepat di dalamnya.
- * - `icon.png` (peluncur lawas & notifikasi) memakai padding lebih longgar, 620.
- * - splash digambar 512 supaya tetap tajam saat expo-splash-screen menskalanya ke 200dp.
+ *   boleh memotongnya jadi lingkaran; 640 menyisakan sedikit napas di dalam 676 itu.
+ * - `icon.png` (peluncur lawas & notifikasi) berlatar, jadi bantalannya boleh lebih rapat.
+ * - splash digambar 512 supaya tetap tajam saat expo-splash-screen menskalanya ke 160dp.
  */
 const files = [
-  { name: 'icon.png', size: 1024, box: 620, ink: LIME, bg: OLIVE_DEEP },
-  { name: 'adaptive-icon.png', size: 1024, box: 780, ink: LIME, bg: null },
-  { name: 'splash-icon.png', size: 512, box: 340, ink: OLIVE, bg: null },
-  { name: 'splash-icon-dark.png', size: 512, box: 340, ink: LIME, bg: null },
+  { name: 'icon.png', size: 1024, box: 780, bg: BG_LIGHT },
+  { name: 'adaptive-icon.png', size: 1024, box: 640, bg: null },
+  // Terang dan gelap sama isinya: lambang berwarna sudah terbaca di kedua latar, dan
+  // app.json tetap menunjuk dua berkas.
+  { name: 'splash-icon.png', size: 512, box: 460, bg: null },
+  { name: 'splash-icon-dark.png', size: 512, box: 460, bg: null },
 ];
 
+const logo = decode(readFileSync(join(assets, 'brand', 'logo-abdya.png')));
 mkdirSync(assets, { recursive: true });
 for (const f of files) {
-  writeFileSync(join(assets, f.name), png(f.size, render(f.size, f.box, f.ink, f.bg)));
+  writeFileSync(join(assets, f.name), png(f.size, compose(f.size, f.box, logo, f.bg)));
   console.log(`assets/${f.name}  ${f.size}×${f.size}`);
 }
-console.log(`latar adaptive: ${BG_LIGHT} · splash gelap: ${BG_DARK}`);
+console.log(`sumber: assets/brand/logo-abdya.png ${logo.w}×${logo.h}`);
+console.log(`latar icon & adaptive: ${BG_LIGHT}`);

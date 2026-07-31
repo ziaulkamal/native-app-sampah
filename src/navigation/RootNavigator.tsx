@@ -14,7 +14,7 @@ import Animated, {
 import { DocumentViewer } from '@/features/dokumen/DocumentViewer';
 import { ScanKtpScreen } from '@/features/ocr/ScanKtpScreen';
 import { BrandMark } from '@/features/shared/BrandMark';
-import { CinematicSplash } from '@/features/shared/splash/CinematicSplash';
+import { SplashAbdya } from '@/features/shared/splash/SplashAbdya';
 import { useApp } from '@/store/AppContext';
 import { useTheme } from '@/theme/ThemeProvider';
 import { colors } from '@/tokens/tokens';
@@ -25,8 +25,8 @@ import type { RootStackParams } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParams>();
 
-/** Setel `false` bila pembuka sinematik harus dilewati sama sekali. */
-const PEMBUKA_SINEMATIK = true;
+/** Setel `false` bila pembuka bergambar harus dilewati sama sekali. */
+const PEMBUKA = true;
 
 /**
  * Akar navigasi. Menggantikan percabangan `screen`/`role` di `App.tsx` web.
@@ -41,12 +41,11 @@ const PEMBUKA_SINEMATIK = true;
 export function RootNavigator() {
   const { booted, authed, role } = useApp();
   const { mode } = useTheme();
-  const [pembuka, setPembuka] = useState(PEMBUKA_SINEMATIK);
+  const [pembuka, setPembuka] = useState(PEMBUKA);
 
   // Pembuka berjalan berbarengan dengan pemeriksaan token, bukan sesudahnya; kalau
   // sesinya sudah siap duluan (biasanya begitu) `BootSplash` tak pernah sempat muncul.
-  if (pembuka)
-    return <CinematicSplash onDone={() => setPembuka(false)} onSiap={hideNativeSplash} />;
+  if (pembuka) return <SplashAbdya onDone={() => setPembuka(false)} onSiap={hideNativeSplash} />;
 
   if (!booted) return <BootSplash />;
 

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Si Mudah - Apps Restribusi DLH",
+    "name": "Si Mudah - Management Restribusi DLH",
     "slug": "native-app-sampah",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -68,14 +68,14 @@
       [
         "expo-splash-screen",
         {
-          "//": "Latar splash dibuat sama persis dengan token `bg` tiap tema, supaya sambungan ke BootSplash JS tak berkedip: splash native memudar tepat ke warna yang sudah ada di baliknya. `resizeMode: contain` dengan imageWidth kecil — lambangnya lambang, bukan gambar latar.",
+          "//": "Latarnya hijau pangkal gradien `SplashAbdya`, bukan token `bg`: yang menyambut splash native sekarang pembuka bergambar itu, jadi warna inilah yang membuat sambungannya tak berkedip. Sama untuk tema gelap — pembukanya memang selalu gelap. `resizeMode: contain` dengan imageWidth kecil — lambangnya lambang, bukan gambar latar.",
           "image": "./assets/splash-icon.png",
           "imageWidth": 160,
           "resizeMode": "contain",
-          "backgroundColor": "#EDEBE4",
+          "backgroundColor": "#0B3D2E",
           "dark": {
             "image": "./assets/splash-icon-dark.png",
-            "backgroundColor": "#141410"
+            "backgroundColor": "#0B3D2E"
           }
         }
       ],
