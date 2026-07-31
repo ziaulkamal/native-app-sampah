@@ -116,22 +116,27 @@ export function PelangganHome() {
         />
       </View>
 
-      <SectionHeader title="Langganan" />
-      <View className="gap-3 rounded-xl2 bg-surface p-4" style={shadows.card}>
-        <Row label="Golongan" value={golonganName(tariffs, customer.category)} />
-        <Row
-          label="Tarif"
-          value={`${formatRupiah(customer.tariff)}${golongan ? ' ' + SCHEME_SUFFIX[golongan.scheme] : ''}`}
-        />
-        <Row label="Skema" value={golongan ? SCHEME_LABEL[golongan.scheme] : '-'} />
-        <View className="flex-row items-center justify-between">
-          <Text className="text-[12.5px] text-dim">Status</Text>
-          <Badge label={status.label} tone={status.tone} />
+      {/* Judul dan kartunya satu grup: header melekat 12dp ke isinya, sementara jarak
+          antar seksi diatur `sectionGap` scaffold. */}
+      <View className="gap-3">
+        <SectionHeader title="Langganan" />
+        <View className="gap-3 rounded-xl2 bg-surface p-4" style={shadows.card}>
+          <Row label="Golongan" value={golonganName(tariffs, customer.category)} />
+          <Row
+            label="Tarif"
+            value={`${formatRupiah(customer.tariff)}${golongan ? ' ' + SCHEME_SUFFIX[golongan.scheme] : ''}`}
+          />
+          <Row label="Skema" value={golongan ? SCHEME_LABEL[golongan.scheme] : '-'} />
+          <View className="flex-row items-center justify-between">
+            <Text className="text-[12.5px] text-dim">Status</Text>
+            <Badge label={status.label} tone={status.tone} />
+          </View>
         </View>
       </View>
 
-      {/* Berlatar supaya terbaca sebagai aturan resmi, bukan keterangan yang tercecer. */}
-      <View className="mb-2 flex-row items-start gap-2.5 rounded-xl bg-surface2 px-3.5 py-3">
+      {/* Berlatar supaya terbaca sebagai aturan resmi, bukan keterangan yang tercecer.
+          Tanpa margin bawah: jarak ekor halaman milik `pb-14` scaffold. */}
+      <View className="flex-row items-start gap-2.5 rounded-xl bg-surface2 px-3.5 py-3">
         <Icon name="info" size={15} color={colors[mode].olive} />
         <Text className="flex-1 text-[11.5px] leading-relaxed text-dim">
           Tagihan dilunasi berurutan dari yang terlama — itu aturan yang ditegakkan server.
@@ -204,8 +209,10 @@ function WeekStrip({ days }: { days: Weekday[] }) {
   );
 
   return (
-    <View>
-      <Text className="mb-2.5 px-1 text-[14px] font-extrabold text-ink">Angkut pekan ini</Text>
+    // Judulnya `SectionHeader` seperti seksi lain, bukan teks 14px sendiri: satu sistem
+    // judul seksi di seluruh beranda.
+    <View className="gap-3">
+      <SectionHeader title="Angkut pekan ini" />
       <View className="flex-row gap-2.5">
         {week.slice(start, start + 4).map((day, i) => {
           const index = start + i;
@@ -257,9 +264,12 @@ function SplitHalf({
   return (
     <View className="flex-1 px-2">
       <Text className="text-[11px] font-semibold uppercase tracking-wide text-dim">{label}</Text>
+      {/* Menyusut, bukan ter-ellipsis: digit rupiah yang terpotong salah baca. */}
       <Text
         className={`mt-1 text-[17px] font-extrabold ${danger === true ? 'text-danger' : 'text-ink'}`}
         numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.75}
       >
         {value}
       </Text>
@@ -298,9 +308,12 @@ function NoProfile({ loading }: { loading: boolean }) {
 /** Baris label–nilai untuk kartu ringkasan. */
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <View className="flex-row items-center justify-between">
+    <View className="flex-row items-center justify-between gap-3">
       <Text className="text-[12.5px] text-dim">{label}</Text>
-      <Text className="text-[13px] font-bold text-ink">{value}</Text>
+      {/* `flex-1` + rata kanan: tarif panjang mendesak labelnya, bukan meluber ke luar kartu. */}
+      <Text className="flex-1 text-right text-[13px] font-bold text-ink" numberOfLines={1}>
+        {value}
+      </Text>
     </View>
   );
 }

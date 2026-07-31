@@ -12,6 +12,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { StatCard } from '@/components/ui/StatCard';
 import { NotificationBell } from '@/features/notifikasi/NotificationBell';
 import { formatRupiah, formatRupiahShort, toPercent } from '@/lib/format';
+import { useVerticalRhythm } from '@/lib/rhythm';
 import type { OperatorTabParams } from '@/navigation/types';
 import { useApp } from '@/store/AppContext';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -85,7 +86,8 @@ export function OperatorHome() {
           {/* Angka tunggakan memang milik statistik ini, bukan sudut ikon menu. */}
           <StatCard
             label="Sisa tagihan"
-            value={`${outstanding} pelanggan`}
+            value={String(outstanding)}
+            unit="pelanggan"
             icon="receipt"
             badge={outstanding > 0 ? String(outstanding) : undefined}
           />
@@ -140,19 +142,26 @@ function ActionCard({
         <Icon name={icon} size={22} color={colors[mode].olive} />
       </View>
       <View className="flex-1">
-        <Text className="text-[13px] font-extrabold text-ink">{title}</Text>
+        <Text className="text-[13px] font-extrabold text-ink" numberOfLines={1}>
+          {title}
+        </Text>
+        {/* Keterangannya boleh membungkus: nominal rupiah yang di-ellipsis hilang artinya. */}
         <Text className="mt-0.5 text-[11px] text-dim">{hint}</Text>
       </View>
     </Pressable>
   );
 }
 
-/** Aturan kas di kotak info, bukan teks lepas yang mengambang di bawah daftar. */
+/**
+ * Aturan kas di kotak info, bukan teks lepas yang mengambang di bawah daftar.
+ *
+ * Tanpa margin bawah: jarak ekor halaman milik `pb-14` scaffold, bukan kotak terakhirnya.
+ */
 function Note({ zones }: { zones: number }) {
   const { mode } = useTheme();
 
   return (
-    <View className="mb-2 flex-row items-start gap-2.5 rounded-xl bg-surface2 px-3.5 py-3">
+    <View className="flex-row items-start gap-2.5 rounded-xl bg-surface2 px-3.5 py-3">
       <Icon name="info" size={15} color={colors[mode].olive} />
       <Text className="flex-1 text-[11.5px] leading-relaxed text-dim">
         {zones} zona dalam tanggung jawab Anda. Kas di tangan berkurang setelah setoran disetujui
@@ -168,9 +177,11 @@ function Note({ zones }: { zones: number }) {
  */
 function Coverage({ covered, total }: { covered: number; total: number }) {
   const pct = toPercent(covered, total);
+  const rhythm = useVerticalRhythm();
 
   return (
-    <View className="mt-[22px]">
+    // 4dp lebih lapang dari kapsul `HeroPill`: bilah ini punya label di atasnya.
+    <View style={{ marginTop: rhythm.hero.footTop + 4 }}>
       <View className="mb-1.5 flex-row items-center justify-between">
         <Text className="font-sans text-[11px] font-semibold uppercase tracking-wide text-white/70">
           Cakupan penagihan

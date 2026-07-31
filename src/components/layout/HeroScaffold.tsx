@@ -4,6 +4,7 @@ import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DataBanner } from '@/components/ui/DataBanner';
 import { Icon, type IconName } from '@/components/ui/Icon';
+import { useVerticalRhythm } from '@/lib/rhythm';
 import { useApp } from '@/store/AppContext';
 import { useTheme } from '@/theme/ThemeProvider';
 import { colors, typography } from '@/tokens/tokens';
@@ -18,6 +19,7 @@ import { colors, typography } from '@/tokens/tokens';
 export function HeroScaffold({ hero, children }: { hero: ReactNode; children: ReactNode }) {
   const { dataState, refresh } = useApp();
   const { mode } = useTheme();
+  const rhythm = useVerticalRhythm();
 
   return (
     <View className="flex-1 bg-bg">
@@ -37,7 +39,9 @@ export function HeroScaffold({ hero, children }: { hero: ReactNode; children: Re
         }
       >
         <Hero>{hero}</Hero>
-        <View className="-mt-[26px] gap-[18px] px-[18px]">{children}</View>
+        <View className="-mt-[26px] px-[18px]" style={{ gap: rhythm.sectionGap }}>
+          {children}
+        </View>
       </ScrollView>
     </View>
   );
@@ -46,10 +50,15 @@ export function HeroScaffold({ hero, children }: { hero: ReactNode; children: Re
 function Hero({ children }: { children: ReactNode }) {
   const { mode } = useTheme();
   const insets = useSafeAreaInsets();
-  const pad = { paddingTop: insets.top + 14 };
-  // Kaki kepala 50dp: kapsul titik berhenti tepat di atas kartu menu yang menaikinya
-  // 26dp. Dengan 46dp kapsulnya masih tertutup separuh.
-  const shape = 'rounded-b-[34px] px-[22px] pb-[50px]';
+  const rhythm = useVerticalRhythm();
+  // Kaki kepala mulai 50dp: kapsul titik berhenti tepat di atas kartu menu yang
+  // menaikinya 26dp. Dengan 46dp kapsulnya masih tertutup separuh. Di layar tinggi
+  // kakinya yang melapang (→62dp), bukan offset kartunya, supaya tumpang-tindihnya tetap.
+  const pad = {
+    paddingTop: insets.top + rhythm.hero.padTop,
+    paddingBottom: rhythm.hero.padBottom,
+  };
+  const shape = 'rounded-b-[34px] px-[22px]';
 
   // Di gelap kepalanya tidak bergradien terang: olive #5A6A1E gagal 3:1 di atas latar
   // gelap, jadi kontrasnya datang dari permukaan sedikit lebih terang + garis tepi.
@@ -79,12 +88,14 @@ function Hero({ children }: { children: ReactNode }) {
  * Angka besar di tengah kepala — nominal yang jadi alasan orang membuka aplikasi ini.
  *
  * Teks di seluruh kepala dibatasi `typography.maxScale`: kepala adalah chrome yang
- * proporsinya dijaga, dan di perangkat berskala font besar angka 38px yang ikut
+ * proporsinya dijaga, dan di perangkat berskala font besar angka 38–42px yang ikut
  * membesar penuh mendorong kapsul di kakinya keluar dari zona tumpang-tindih kartu.
  */
 export function HeroAmount({ label, amount }: { label: string; amount: string }) {
+  const rhythm = useVerticalRhythm();
+
   return (
-    <View className="mt-6 items-center">
+    <View className="items-center" style={{ marginTop: rhythm.hero.amountTop }}>
       <Text
         maxFontSizeMultiplier={typography.maxScale}
         className="font-sans text-[11px] font-semibold uppercase tracking-wide text-white/70"
@@ -98,9 +109,15 @@ export function HeroAmount({ label, amount }: { label: string; amount: string })
         >
           Rp
         </Text>
+        {/* Nominal panjang (Rp 12.500.000) menyusut sendiri, tidak di-ellipsis:
+            angka rupiah yang terpotong salah baca, bukan sekadar tak lengkap. */}
         <Text
           maxFontSizeMultiplier={typography.maxScale}
-          className="font-sans text-[38px] font-extrabold leading-none tracking-tight text-white"
+          className="font-sans font-extrabold leading-none tracking-tight text-white"
+          style={{ fontSize: rhythm.hero.amountSize }}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.75}
         >
           {amount}
         </Text>
@@ -119,6 +136,8 @@ export function HeroPill({
   label: string;
   onPress?: () => void;
 }) {
+  const rhythm = useVerticalRhythm();
+
   return (
     <Pressable
       accessibilityRole={onPress === undefined ? 'text' : 'button'}
@@ -126,8 +145,11 @@ export function HeroPill({
       onPress={onPress}
       // `min-h`, bukan `h`: saat teksnya lebih tinggi (skala font sistem) kapsul ikut
       // tumbuh, bukan memotong hurufnya.
-      className="mt-[18px] min-h-[42px] flex-row items-center justify-center gap-2 self-center rounded-full border border-white/25 px-4 py-2"
-      style={({ pressed }) => (pressed ? { opacity: 0.8 } : undefined)}
+      className="min-h-[42px] flex-row items-center justify-center gap-2 self-center rounded-full border border-white/25 px-4 py-2"
+      style={({ pressed }) => [
+        { marginTop: rhythm.hero.footTop },
+        pressed ? { opacity: 0.8 } : undefined,
+      ]}
     >
       <Icon name={icon} size={15} color="#FFFFFF" />
       <Text
