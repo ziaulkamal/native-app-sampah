@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Text, View } from 'react-native';
 import { ScreenScaffold } from '@/components/layout/ScreenScaffold';
@@ -13,7 +13,7 @@ import { formatRupiah } from '@/lib/format';
 import { usePagination } from '@/lib/pagination';
 import { useApp } from '@/store/AppContext';
 import { useTheme } from '@/theme/ThemeProvider';
-import { colors, semantic } from '@/tokens/tokens';
+import { colors, semantic, typography } from '@/tokens/tokens';
 import type { Deposit } from '@/types';
 import { useOperatorData } from './useOperatorData';
 
@@ -78,31 +78,39 @@ export function OperatorSetor() {
     <ScreenScaffold>
       <SubScreenHeader eyebrow="Operator Retribusi" title="Setor Retribusi" />
 
-      <LinearGradient
-        // Sudut 150° web didekati dengan start/end diagonal; RN tak menerima sudut derajat.
-        colors={['#3c4715', colors[mode].olive]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.6, y: 1 }}
-        className="rounded-xl3 p-5 shadow-pop"
-      >
-        <Text className="text-[11px] uppercase tracking-wide text-white/80">
+      <CashPanel dark={mode === 'dark'}>
+        <Text
+          maxFontSizeMultiplier={typography.maxScale}
+          className={`text-[11px] uppercase tracking-wide ${mode === 'dark' ? 'text-dim' : 'text-white/80'}`}
+        >
           Kas di tangan Anda
         </Text>
-        <Text className="mt-1 text-[28px] font-extrabold leading-none text-white">
+        {/* Menyusut, bukan ter-ellipsis: digit rupiah yang terpotong salah baca. */}
+        <Text
+          maxFontSizeMultiplier={typography.maxScale}
+          className={`mt-1 text-[28px] font-extrabold leading-none ${mode === 'dark' ? 'text-ink' : 'text-white'}`}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.75}
+        >
           {formatRupiah(cash.total)}
         </Text>
         {waiting && (
-          <Text className="mt-2 text-[11.5px] leading-snug text-white/80">
+          <Text
+            className={`mt-2 text-[11.5px] leading-snug ${mode === 'dark' ? 'text-dim' : 'text-white/80'}`}
+          >
             {formatRupiah(cash.pendingApproval)} sedang menunggu keputusan dinas. Uangnya masih Anda
             pegang sampai setoran diterima.
           </Text>
         )}
         {/* Ketiganya menerangkan angka besar di atasnya. Sebagai ubin sepertiga lebar,
             "Rp1.250.000" dan labelnya berdesakan di ~110dp; sebagai baris ia sejajar. */}
-        <View className="mt-3.5 gap-2 border-t border-white/15 pt-3">
-          <CashLine label="Terkumpul hari ini" amount={collectedToday} />
-          <CashLine label="Menunggu ACC" amount={cash.pendingApproval} />
-          <CashLine label="Diterima dinas" amount={cash.deposited} />
+        <View
+          className={`mt-3.5 gap-2 border-t pt-3 ${mode === 'dark' ? 'border-line' : 'border-white/15'}`}
+        >
+          <CashLine label="Terkumpul hari ini" amount={collectedToday} dark={mode === 'dark'} />
+          <CashLine label="Menunggu ACC" amount={cash.pendingApproval} dark={mode === 'dark'} />
+          <CashLine label="Diterima dinas" amount={cash.deposited} dark={mode === 'dark'} />
         </View>
 
         <View className="mt-3.5">
@@ -112,14 +120,22 @@ export function OperatorSetor() {
                 ? 'Menunggu keputusan dinas'
                 : `Setor ${formatRupiah(cash.depositable)} ke Dinas`
             }
-            variant="secondary"
+            // Di gelap panelnya sudah `surface2`; tombol `secondary` yang juga permukaan
+            // terang akan lenyap ke dalamnya, jadi di sana ia jadi aksi utama.
+            variant={mode === 'dark' ? 'primary' : 'secondary'}
             full
-            icon={<Icon name="wallet" size={20} color={colors[mode].olive} />}
+            icon={
+              <Icon
+                name="wallet"
+                size={20}
+                color={mode === 'dark' ? colors.light.text : colors[mode].olive}
+              />
+            }
             disabled={busy || waiting || cash.depositable <= 0}
             onPress={() => void submit()}
           />
         </View>
-      </LinearGradient>
+      </CashPanel>
 
       <View className="gap-3">
         <SectionHeader title="Riwayat setor" />
@@ -142,11 +158,41 @@ export function OperatorSetor() {
   );
 }
 
-function CashLine({ label, amount }: { label: string; amount: number }) {
+/**
+ * Cangkang panel kas. Di terang bergradien olive; di gelap tidak.
+ *
+ * Alasannya sama dengan kepala beranda (`HeroScaffold`): olive #5A6A1E gagal 3:1 di atas
+ * latar gelap, jadi di sana kontrasnya datang dari permukaan sedikit lebih terang +
+ * garis tepi, bukan dari gradien yang justru meredupkan teks di atasnya.
+ */
+function CashPanel({ dark, children }: { dark: boolean; children: ReactNode }) {
+  if (dark) {
+    return (
+      <View className="rounded-xl3 border border-line bg-surface2 p-5 shadow-pop">{children}</View>
+    );
+  }
+
+  return (
+    <LinearGradient
+      // Sudut 150° web didekati dengan start/end diagonal; RN tak menerima sudut derajat.
+      // `colors.light` eksplisit: cabang ini memang hanya jalan di mode terang.
+      colors={[colors.light['olive-deep'], colors.light.olive]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0.6, y: 1 }}
+      className="rounded-xl3 p-5 shadow-pop"
+    >
+      {children}
+    </LinearGradient>
+  );
+}
+
+function CashLine({ label, amount, dark }: { label: string; amount: number; dark: boolean }) {
   return (
     <View className="flex-row items-center justify-between gap-3">
-      <Text className="text-[12px] text-white/75">{label}</Text>
-      <Text className="text-[12.5px] font-bold text-white">{formatRupiah(amount)}</Text>
+      <Text className={`text-[12px] ${dark ? 'text-dim' : 'text-white/75'}`}>{label}</Text>
+      <Text className={`text-[12.5px] font-bold ${dark ? 'text-ink' : 'text-white'}`}>
+        {formatRupiah(amount)}
+      </Text>
     </View>
   );
 }

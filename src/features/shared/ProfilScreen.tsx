@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenScaffold } from '@/components/layout/ScreenScaffold';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
 import { formatRupiah } from '@/lib/format';
@@ -34,12 +35,16 @@ export function ProfilScreen() {
   const app = useApp();
   const { dark, toggleDark } = useTheme();
   const nav = useNavigation<NavigationProp<ProfilStackParams>>();
+  const insets = useSafeAreaInsets();
   const view = app.role === 'operator' ? operatorView(app) : customerView(app);
   const [gantiPassword, setGantiPassword] = useState(false);
 
   return (
     <ScreenScaffold>
-      <View className="items-center gap-3 pt-2">
+      {/* Akar tumpukan Profil, dan tumpukannya `headerShown: false` — tak ada header
+          bawaan maupun `SubScreenHeader` yang memikul inset, jadi foto profil dipikul
+          sendiri. Tanpa ini ia menyelinap ke bawah jam status bar. */}
+      <View className="items-center gap-3" style={{ paddingTop: insets.top + 8 }}>
         <AvatarPicker name={view.name} />
         <View className="items-center">
           <Text className="text-[19px] font-extrabold text-ink">{view.name}</Text>

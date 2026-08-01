@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Text, View } from 'react-native';
 import { ScreenScaffold } from '@/components/layout/ScreenScaffold';
@@ -15,7 +15,7 @@ import { BILL_BADGE } from '@/lib/labels';
 import { usePagination } from '@/lib/pagination';
 import type { PelangganTagihanParams } from '@/navigation/types';
 import { useTheme } from '@/theme/ThemeProvider';
-import { colors, semantic } from '@/tokens/tokens';
+import { colors, semantic, typography } from '@/tokens/tokens';
 import type { Bill } from '@/types';
 import { LocationSwitcher } from './LocationSwitcher';
 import { PaymentSheet } from './PaymentSheet';
@@ -59,22 +59,27 @@ export function PelangganTagihan({ route, navigation }: Props) {
       )}
 
       {outstanding > 0 ? (
-        <LinearGradient
-          colors={['#3c4715', colors[mode].olive]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0.6, y: 1 }}
-          className="rounded-xl3 p-5 shadow-pop"
-        >
-          <Text className="text-[11px] uppercase tracking-wide text-white/80">
+        <OutstandingPanel dark={mode === 'dark'}>
+          <Text
+            maxFontSizeMultiplier={typography.maxScale}
+            className={`text-[11px] uppercase tracking-wide ${mode === 'dark' ? 'text-dim' : 'text-white/80'}`}
+          >
             Total belum dibayar
           </Text>
-          <Text className="mt-1 text-[28px] font-extrabold leading-none text-white">
+          {/* Menyusut, bukan ter-ellipsis: digit rupiah yang terpotong salah baca. */}
+          <Text
+            maxFontSizeMultiplier={typography.maxScale}
+            className={`mt-1 text-[28px] font-extrabold leading-none ${mode === 'dark' ? 'text-ink' : 'text-white'}`}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.75}
+          >
             {formatRupiah(outstanding)}
           </Text>
-          <Text className="mt-1.5 text-[12px] text-white/75">
+          <Text className={`mt-1.5 text-[12px] ${mode === 'dark' ? 'text-dim' : 'text-white/75'}`}>
             {unpaid.length} tagihan menunggu pembayaran
           </Text>
-        </LinearGradient>
+        </OutstandingPanel>
       ) : (
         <View className="flex-row items-center gap-3 rounded-xl3 bg-surface p-5 shadow-card">
           <View className="h-11 w-11 items-center justify-center rounded-full bg-success/10">
@@ -123,6 +128,33 @@ export function PelangganTagihan({ route, navigation }: Props) {
 
       {payTarget && <PaymentSheet bill={payTarget} onClose={() => setPayTarget(null)} />}
     </ScreenScaffold>
+  );
+}
+
+/**
+ * Cangkang panel tunggakan. Di terang bergradien olive; di gelap tidak.
+ *
+ * Alasannya sama dengan kepala beranda (`HeroScaffold`) dan panel kas Setor: olive
+ * #5A6A1E gagal 3:1 di atas latar gelap, jadi di sana kontrasnya datang dari permukaan
+ * sedikit lebih terang + garis tepi, bukan dari gradien yang meredupkan teks di atasnya.
+ */
+function OutstandingPanel({ dark, children }: { dark: boolean; children: ReactNode }) {
+  if (dark) {
+    return (
+      <View className="rounded-xl3 border border-line bg-surface2 p-5 shadow-pop">{children}</View>
+    );
+  }
+
+  return (
+    <LinearGradient
+      // `colors.light` eksplisit: cabang ini memang hanya jalan di mode terang.
+      colors={[colors.light['olive-deep'], colors.light.olive]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0.6, y: 1 }}
+      className="rounded-xl3 p-5 shadow-pop"
+    >
+      {children}
+    </LinearGradient>
   );
 }
 

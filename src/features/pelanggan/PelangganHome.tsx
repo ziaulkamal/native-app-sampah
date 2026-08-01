@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   greetingNow,
   HeroAmount,
@@ -286,11 +287,19 @@ function sumPaidThisYear(bills: Bill[]): number {
     .reduce((sum, b) => sum + b.amount + b.penalty, 0);
 }
 
-/** Pendaftar yang belum diverifikasi belum punya titik layanan — jelaskan, jangan kosongkan. */
+/**
+ * Pendaftar yang belum diverifikasi belum punya titik layanan — jelaskan, jangan kosongkan.
+ *
+ * Satu-satunya keadaan beranda tanpa kepala: tab Beranda berjalan `headerShown: false`
+ * dan di sini `HeroScaffold` tak ikut tergambar, jadi insetnya dipikul sendiri —
+ * tanpa itu isinya menyelinap ke bawah jam status bar.
+ */
 function NoProfile({ loading }: { loading: boolean }) {
+  const insets = useSafeAreaInsets();
+
   return (
     <ScreenScaffold>
-      <View className="mt-6">
+      <View className="mt-6" style={{ paddingTop: insets.top }}>
         <EmptyState
           icon={loading ? 'receipt' : 'user'}
           title={loading ? 'Memuat data Anda…' : 'Langganan belum aktif'}

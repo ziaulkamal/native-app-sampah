@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { ScreenScaffold } from '@/components/layout/ScreenScaffold';
 import { SubScreenHeader } from '@/components/layout/SubScreenHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -37,10 +37,14 @@ export function OperatorVerifikasi() {
       <SearchBar value={query} onChangeText={setQuery} placeholder="Cari nama pelanggan…" />
 
       <View className="gap-3">
+        {/* `EmptyState`, bukan teks melayang: keadaan "belum mencari" dan "tidak ketemu"
+            di bawah sama-sama kosong, jadi keduanya bicara dengan bahasa yang sama. */}
         {q === '' && (
-          <Text className="py-6 text-center text-[12.5px] text-dim">
-            Masukkan nama pelanggan untuk memverifikasi.
-          </Text>
+          <EmptyState
+            icon="search"
+            title="Cari pelanggan"
+            message="Ketik nama atau alamat pelanggan di zona Anda untuk mencatat pembayaran."
+          />
         )}
         {shown.map((c) => {
           const bill = billFor.get(c.id);
@@ -62,7 +66,11 @@ export function OperatorVerifikasi() {
             message="Tidak ada pelanggan cocok di zona Anda."
           />
         )}
-        <Pagination {...bind} unit="pelanggan" className="rounded-xl2 bg-surface shadow-card" />
+        {/* Tanpa kata kunci daftarnya memang kosong; kontrol halaman di bawah empty
+            state hanya menggantung tanpa ada yang bisa dihalamani. */}
+        {q !== '' && (
+          <Pagination {...bind} unit="pelanggan" className="rounded-xl2 bg-surface shadow-card" />
+        )}
       </View>
     </ScreenScaffold>
   );
