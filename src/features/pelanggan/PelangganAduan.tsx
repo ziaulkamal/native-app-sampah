@@ -40,36 +40,38 @@ export function PelangganAduan() {
 
   return (
     <ScreenScaffold>
-      {/* Tombolnya jadi aksi header: selebar layar ia terbaca seperti banner dan
-          mendorong daftar — isi utama layar ini — turun satu blok penuh. */}
-      <SubScreenHeader
-        eyebrow="Layanan"
-        title="Aduan Saya"
-        action={
-          <Button
-            label="Buat Aduan"
-            size="sm"
-            icon={<Icon name="plus" size={16} color="#fff" />}
-            onPress={openForm}
-          />
-        }
+      <SubScreenHeader eyebrow="Layanan" title="Aduan Saya" />
+
+      {/* Selebar layar dan berdiri sendiri, bukan tombol kecil di sisi judul: membuat
+          aduan adalah satu-satunya alasan orang membuka layar ini kalau daftarnya belum
+          menjawab keluhannya. */}
+      <Button
+        label="Buat Aduan"
+        shape="pill"
+        full
+        icon={<Icon name="plus" size={18} color="#fff" />}
+        onPress={openForm}
       />
 
-      <View className="gap-3">
+      <View className="gap-2.5">
         {shown.map((a) => {
           const st = COMPLAINT_STATUS[a.status];
           return (
-            // Meta dulu, baru judul: tanggal dan status sama-sama metadata, dan judul
-            // yang berdiri sendiri tak lagi terpotong ellipsis oleh badge di sampingnya.
+            // Jenis dulu, baru isi, tanggal di kaki: yang dicari orang di daftar ini
+            // "aduan yang mana", dan itu namanya — bukan kapan ia dikirim.
             <View key={a.id} className="rounded-xl2 bg-surface p-4 shadow-card">
-              <View className="flex-row items-center justify-between gap-2">
-                <Text className="text-[11px] text-dim">{a.createdAt}</Text>
-                <Badge label={st.label} tone={st.tone} />
+              <View className="flex-row items-center justify-between gap-2.5">
+                <Text className="min-w-0 flex-1 text-[14px] font-bold text-ink" numberOfLines={1}>
+                  {a.type}
+                </Text>
+                <View className="flex-none">
+                  <Badge label={st.label} tone={st.tone} />
+                </View>
               </View>
-              <Text className="mt-2 text-[14px] font-bold text-ink">{a.type}</Text>
-              <Text className="mt-1 text-[12.5px] leading-relaxed text-ink/80">
+              <Text className="mt-2.5 text-[12.5px] leading-relaxed text-ink/80">
                 {a.description}
               </Text>
+              <Text className="mt-3 text-[11px] text-dim">{a.createdAt}</Text>
             </View>
           );
         })}

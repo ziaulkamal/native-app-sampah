@@ -1,8 +1,8 @@
-import { Pressable, ScrollView, Text } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Icon } from '@/components/ui/Icon';
 import { LOCATION_KIND } from '@/lib/labels';
 import { useTheme } from '@/theme/ThemeProvider';
-import { colors } from '@/tokens/tokens';
+import { colors, shadows } from '@/tokens/tokens';
 import type { Customer } from '@/types';
 
 interface LocationSwitcherProps {
@@ -15,6 +15,10 @@ interface LocationSwitcherProps {
  * Pemilih titik layanan untuk pelanggan yang punya lebih dari satu (mis. rumah +
  * warung). Tagihan tiap titik berdiri sendiri, jadi pilihan di sini menentukan
  * angka yang tampil di beranda dan layar tagihan.
+ *
+ * Kapsul, bukan kotak bergaris: deret ini duduk langsung di atas latar krem tanpa kartu
+ * pembungkus, dan di sana bayangan yang membedakan terpilih dari tidak — yang aktif
+ * terangkat olive, sisanya kartu putih yang rata.
  */
 export function LocationSwitcher({ locations, activeId, onSelect }: LocationSwitcherProps) {
   const { mode } = useTheme();
@@ -24,7 +28,8 @@ export function LocationSwitcher({ locations, activeId, onSelect }: LocationSwit
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerClassName="gap-2 pr-4"
+      // `py`: bayangan kapsul terangkat terpotong tepi ScrollView tanpa ruang napas.
+      contentContainerClassName="gap-2 py-1 pr-4"
     >
       {locations.map((loc) => {
         const on = loc.id === activeId;
@@ -34,16 +39,26 @@ export function LocationSwitcher({ locations, activeId, onSelect }: LocationSwit
             onPress={() => onSelect(loc.id)}
             accessibilityRole="button"
             accessibilityState={{ selected: on }}
-            className={`h-10 flex-row items-center gap-2 rounded-xl border px-3.5 ${
-              on ? 'border-olive bg-olive' : 'border-line bg-surface'
+            // Jenis titik masuk ke label aksesibilitas, bukan ke kapsulnya: dua baris
+            // teks di kapsul membuat deretnya setinggi kartu.
+            accessibilityLabel={`${loc.label}, ${LOCATION_KIND[loc.kind]}`}
+            className={`min-h-[44px] flex-row items-center gap-2 rounded-full py-2 pl-2.5 pr-4 ${
+              on ? 'bg-olive' : 'bg-surface'
             }`}
+            style={on ? shadows.pop : shadows.card}
           >
-            <Icon name="pin" size={16} color={on ? '#fff' : colors[mode]['text-dim']} />
-            <Text className={`text-[12.5px] font-semibold ${on ? 'text-white' : 'text-ink'}`}>
+            <View
+              className={`h-[22px] w-[22px] items-center justify-center rounded-full ${
+                on ? 'bg-white/20' : 'bg-pill'
+              }`}
+            >
+              <Icon name="home" size={12} color={colors[mode][on ? 'lime' : 'olive']} />
+            </View>
+            <Text
+              className={`text-[12px] font-semibold ${on ? 'text-white' : 'text-dim'}`}
+              numberOfLines={1}
+            >
               {loc.label}
-            </Text>
-            <Text className={`text-[10.5px] ${on ? 'text-white/75' : 'text-dim'}`}>
-              {LOCATION_KIND[loc.kind]}
             </Text>
           </Pressable>
         );

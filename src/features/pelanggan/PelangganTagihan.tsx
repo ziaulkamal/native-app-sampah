@@ -1,11 +1,10 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useState, type ReactNode } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { ScreenScaffold } from '@/components/layout/ScreenScaffold';
 import { ScreenTitle } from '@/components/layout/ScreenTitle';
 import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { Pagination } from '@/components/ui/Pagination';
@@ -92,7 +91,7 @@ export function PelangganTagihan({ route, navigation }: Props) {
       {unpaid.length > 0 && (
         <>
           <SectionHeader title="Belum dibayar" />
-          <View className="gap-3">
+          <View className="gap-2.5">
             {unpaid.map((b, i) => (
               // Hanya tagihan terlama yang bisa dibayar — server menolak yang melompat.
               <BillRow
@@ -102,6 +101,11 @@ export function PelangganTagihan({ route, navigation }: Props) {
                 blocked={i > 0}
               />
             ))}
+            {/* Aturannya ditulis sekali di kaki daftar, bukan diulang di tiap kartu
+                terkunci: yang perlu dijelaskan urutannya, bukan tiap tombolnya. */}
+            <Text className="mt-0.5 px-0.5 text-[11.5px] leading-relaxed text-dim">
+              Pelunasan berurutan: tagihan terlama dulu, yang lebih baru terkunci sampai lunas.
+            </Text>
           </View>
         </>
       )}
@@ -139,9 +143,18 @@ export function PelangganTagihan({ route, navigation }: Props) {
  * sedikit lebih terang + garis tepi, bukan dari gradien yang meredupkan teks di atasnya.
  */
 function OutstandingPanel({ dark, children }: { dark: boolean; children: ReactNode }) {
+  // Bulatan hias di sudut, dipotong jadi busur oleh `overflow-hidden` induknya — penanda
+  // yang sama dengan kartu tagihan di beranda, supaya dua layar itu terbaca sekeluarga.
+  const orb = (
+    <View className="absolute -right-10 -top-[46px] h-[150px] w-[150px] rounded-full bg-lime/10" />
+  );
+
   if (dark) {
     return (
-      <View className="rounded-xl3 border border-line bg-surface2 p-5 shadow-pop">{children}</View>
+      <View className="overflow-hidden rounded-xl3 border border-line bg-surface2 p-5 shadow-pop">
+        {orb}
+        {children}
+      </View>
     );
   }
 
@@ -151,8 +164,9 @@ function OutstandingPanel({ dark, children }: { dark: boolean; children: ReactNo
       colors={[colors.light['olive-deep'], colors.light.olive]}
       start={{ x: 0, y: 0 }}
       end={{ x: 0.6, y: 1 }}
-      className="rounded-xl3 p-5 shadow-pop"
+      className="overflow-hidden rounded-xl3 p-5 shadow-pop"
     >
+      {orb}
       {children}
     </LinearGradient>
   );
@@ -168,16 +182,20 @@ function BillRow({ bill, onPay, blocked }: { bill: Bill; onPay?: () => void; blo
   // nominal, jadi tak perlu baris aksi kedua yang mengulanginya.
   if (bill.status === 'lunas') {
     return (
-      <View className="flex-row items-center gap-3 rounded-xl2 bg-surface p-3.5 shadow-card">
-        <View className="flex-1">
-          <Text className="text-[14px] font-bold text-ink">Retribusi {bill.period}</Text>
-          <Text className="mt-0.5 text-[11.5px] text-dim">Lunas · {bill.paidAt}</Text>
+      <View className="flex-row items-center gap-3 rounded-xl2 bg-surface p-4 shadow-card">
+        {/* Ubin centang di kiri: yang membedakan baris lunas dari baris tertunggak harus
+            terbaca sebelum mata sampai ke nominal di ujung kanan. */}
+        <View className="h-[42px] w-[42px] flex-none items-center justify-center rounded-[14px] bg-success/10">
+          <Icon name="check" size={19} color={semantic.success} />
         </View>
-        <View className="items-end gap-1">
-          <Text className="text-[15px] font-extrabold text-ink">{total}</Text>
-          <View className="flex-row items-center gap-1 rounded-full bg-success/10 px-2.5 py-1">
-            <Icon name="check" size={12} color={semantic.success} />
-            <Text className="font-sans text-[10.5px] font-bold tracking-wide text-success">
+        <View className="min-w-0 flex-1">
+          <Text className="text-[14px] font-bold text-ink">Retribusi {bill.period}</Text>
+          <Text className="mt-1.5 text-[11.5px] text-dim">Lunas · {bill.paidAt}</Text>
+        </View>
+        <View className="flex-none items-end gap-2">
+          <Text className="text-[14.5px] font-extrabold text-ink">{total}</Text>
+          <View className="rounded-full bg-success/10 px-2.5 py-1.5">
+            <Text className="font-sans text-[9.5px] font-bold uppercase tracking-wide text-success">
               Lunas
             </Text>
           </View>
@@ -186,39 +204,51 @@ function BillRow({ bill, onPay, blocked }: { bill: Bill; onPay?: () => void; blo
     );
   }
 
+  const locked = blocked === true;
+  const dark = mode === 'dark';
+  // Olive gelap (#A6B84B) terlalu terang untuk teks putih — di gelap tombol utama dibalik
+  // jadi lime berisi teks gelap, pola yang sama dengan `Button` dan FAB bilah bawah.
+  const payFg = locked ? colors[mode]['text-dim'] : dark ? colors.light.text : '#fff';
+
   return (
-    <View className="rounded-xl2 bg-surface p-3.5 shadow-card">
+    <View className="rounded-xl2 bg-surface p-4 shadow-card">
       <View className="flex-row items-start gap-3">
-        <View className="flex-1">
+        <View className="min-w-0 flex-1">
           <Text className="text-[14px] font-bold text-ink">Retribusi {bill.period}</Text>
-          <Text className="mt-0.5 text-[11.5px] text-dim">Jatuh tempo {bill.dueDate}</Text>
-        </View>
-        <Badge label={badge.label} tone={badge.tone} />
-      </View>
-      <View className="mt-3 flex-row items-center justify-between gap-3">
-        <View>
-          <Text className="text-[17px] font-extrabold text-ink">{total}</Text>
-          {/* Denda menempel pada nominal, bukan pada tanggal: ia bagian dari yang dibayar. */}
+          <Text className="mt-1.5 text-[11.5px] text-dim">Jatuh tempo {bill.dueDate}</Text>
+          {/* Denda naik ke blok keterangan: di bawah nominal ia terbaca sebagai potongan
+              dari angka di atasnya, padahal ia justru sudah termasuk di dalamnya. */}
           {bill.penalty > 0 && (
-            <Text className="mt-0.5 text-[11.5px] font-semibold text-danger">
+            <Text className="mt-1.5 text-[11.5px] font-semibold text-danger">
               Termasuk denda {formatRupiah(bill.penalty)}
             </Text>
           )}
         </View>
-        {blocked === true ? (
-          // Tombol pudar terbaca "rusak" oleh orang awam; alasan terkuncinya ditulis saja.
-          <View className="max-w-[58%] flex-row items-center gap-1.5">
-            <Icon name="lock" size={14} color={colors[mode]['text-dim']} />
-            <Text className="flex-1 text-[11.5px] text-dim">Lunasi tagihan terlama lebih dulu</Text>
-          </View>
-        ) : (
-          <Button
-            label="Bayar"
-            size="sm"
-            onPress={onPay}
-            icon={<Icon name="wallet" size={16} color="#fff" />}
-          />
-        )}
+        <Badge label={badge.label} tone={badge.tone} />
+      </View>
+      <View className="mt-3.5 flex-row items-center justify-between gap-3">
+        <Text className="text-[16px] font-extrabold text-ink">{total}</Text>
+        {/* Yang terkunci tetap bertombol, hanya pudar dan bernama "Terkunci": kartu tanpa
+            tombol terbaca sebagai kartu yang memang tak punya aksi, bukan yang belum
+            gilirannya. Alasannya ditulis sekali di kaki daftar. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: locked }}
+          accessibilityHint={
+            locked ? 'Lunasi tagihan terlama lebih dulu untuk membuka tagihan ini' : undefined
+          }
+          disabled={locked}
+          onPress={onPay}
+          className={`min-h-[44px] flex-none flex-row items-center gap-[7px] rounded-full px-[18px] ${
+            locked ? 'bg-pill opacity-[.45]' : dark ? 'bg-lime' : 'bg-olive'
+          }`}
+          style={({ pressed }) => (pressed ? { opacity: 0.85 } : undefined)}
+        >
+          <Icon name="wallet" size={15} color={payFg} />
+          <Text className="font-sans text-[12.5px] font-bold" style={{ color: payFg }}>
+            {locked ? 'Terkunci' : 'Bayar'}
+          </Text>
+        </Pressable>
       </View>
     </View>
   );

@@ -6,35 +6,29 @@ import { colors, shadows, typography } from '@/tokens/tokens';
 export interface HomeMenuItem {
   label: string;
   icon: IconName;
-  /** Angka merah di sudut ikon; disembunyikan bila nol. */
+  /** Angka merah di sudut ubin; disembunyikan bila nol. */
   badge?: number;
   onPress: () => void;
 }
 
 /**
- * Kartu menu yang mengambang menaiki kepala beranda.
+ * Deretan pintu layanan di beranda: empat ubin persegi, label di bawahnya.
  *
- * Empat kolom. Isinya hanya pintu yang tak ada di bilah bawah — menu yang mengulang
- * tab hanya menambah yang harus dipindai tanpa membuka apa pun yang baru.
+ * Bukan satu kartu berisi empat kolom seperti sebelumnya — tiap pintu berdiri sebagai
+ * ubinnya sendiri, sehingga target sentuhnya terbaca sebesar ubinnya, bukan sebesar
+ * lingkaran ikon di dalam kartu bersama.
  */
 export function HomeMenu({ items }: { items: HomeMenuItem[] }) {
-  const wraps = items.length > 4;
-
   return (
-    <View
-      className={`flex-row flex-wrap rounded-[22px] bg-surface px-3.5 ${
-        wraps ? 'py-5' : 'py-[18px]'
-      }`}
-      style={shadows.pop}
-    >
+    <View className="flex-row gap-2.5">
       {items.map((item) => (
-        <MenuButton key={item.label} spaced={wraps} {...item} />
+        <MenuButton key={item.label} {...item} />
       ))}
     </View>
   );
 }
 
-function MenuButton({ label, icon, badge, onPress, spaced }: HomeMenuItem & { spaced: boolean }) {
+function MenuButton({ label, icon, badge, onPress }: HomeMenuItem) {
   const { mode } = useTheme();
 
   return (
@@ -42,10 +36,13 @@ function MenuButton({ label, icon, badge, onPress, spaced }: HomeMenuItem & { sp
       accessibilityRole="button"
       accessibilityLabel={badge !== undefined && badge > 0 ? `${label}, ${badge} menunggu` : label}
       onPress={onPress}
-      className={`w-1/4 items-center gap-2 py-1 ${spaced ? 'mb-2.5' : ''}`}
+      className="flex-1 items-center gap-2.5"
       style={({ pressed }) => (pressed ? { opacity: 0.7 } : undefined)}
     >
-      <View className="h-[52px] w-[52px] items-center justify-center rounded-full bg-pill">
+      <View
+        className="aspect-square w-full items-center justify-center rounded-2xl bg-surface"
+        style={shadows.card}
+      >
         <Icon name={icon} size={22} color={colors[mode].olive} />
         {badge !== undefined && badge > 0 && (
           <View className="absolute -right-1 -top-1 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger px-1">
@@ -62,7 +59,7 @@ function MenuButton({ label, icon, badge, onPress, spaced }: HomeMenuItem & { sp
           hanya bisa terpotong `numberOfLines`, bukan membungkus rapi. */}
       <Text
         maxFontSizeMultiplier={typography.maxScale}
-        className="font-sans text-[11px] font-bold text-ink"
+        className="font-sans text-[11px] font-semibold text-ink"
         numberOfLines={1}
       >
         {label}

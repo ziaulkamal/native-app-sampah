@@ -8,11 +8,16 @@ import { colors } from '@/tokens/tokens';
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline-danger';
 type Size = 'sm' | 'md';
 
+/** `pill`: aksi utama yang berdiri sendiri selebar layar — bentuk kapsul membedakannya
+ *  dari kartu bersudut di sekitarnya, yang radius 16-nya nyaris sama. */
+type Shape = 'rounded' | 'pill';
+
 interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> {
   /** Teks tombol. Web menerima children bebas; di sini teks + ikon opsional dipisah. */
   label: string;
   variant?: Variant;
   size?: Size;
+  shape?: Shape;
   full?: boolean;
   /** Ikon di kiri label, mis. <Icon name="plus" size={16} color="#fff" />. */
   icon?: React.ReactNode;
@@ -71,6 +76,7 @@ export function Button({
   label: text,
   variant = 'primary',
   size = 'md',
+  shape = 'rounded',
   full,
   icon,
   iconRight,
@@ -92,7 +98,8 @@ export function Button({
       // Web memakai :hover/:active; di ponsel tak ada hover, jadi umpan balik
       // sentuhnya redup sesaat — itulah padanan `transition` di sana.
       className={[
-        'flex-row items-center justify-center gap-2 rounded-2xl',
+        'flex-row items-center justify-center gap-2',
+        shape === 'pill' ? 'rounded-full' : 'rounded-2xl',
         flip ? FLIPPED_PRIMARY : box[variant],
         boxSize[size],
         full === true ? 'w-full' : '',

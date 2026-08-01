@@ -1,9 +1,5 @@
-import {
-  createBottomTabNavigator,
-  type BottomTabBarButtonProps,
-} from '@react-navigation/bottom-tabs';
+import { createBottomTabNavigator, type BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Pressable, View } from 'react-native';
 import { NotificationBell } from '@/features/notifikasi/NotificationBell';
 import { OperatorHome } from '@/features/operator/OperatorHome';
 import { OperatorPenagihan } from '@/features/operator/OperatorPenagihan';
@@ -20,7 +16,8 @@ import { AkunScreen } from '@/features/shared/AkunScreen';
 import { ProfilScreen } from '@/features/shared/ProfilScreen';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { useTheme } from '@/theme/ThemeProvider';
-import { colors, shadows, typography } from '@/tokens/tokens';
+import { colors, typography } from '@/tokens/tokens';
+import { FloatingTabBar } from './FloatingTabBar';
 import type {
   OperatorBerandaParams,
   OperatorPenagihanParams,
@@ -40,6 +37,9 @@ import type {
  * dalam tumpukan tab induknya (aduan di Beranda, riwayat di Tagihan, verifikasi &
  * setor di Beranda): itu menghasilkan sorotan tab yang sama dengan peta `PARENT_TAB`
  * web tanpa perlu memelihara petanya sendiri.
+ *
+ * Bilahnya sendiri digambar `FloatingTabBar`, bukan bawaan navigator: bentuk kapsul
+ * mengambang dengan tombol tengah yang menjulang tak bisa lahir dari `tabBarStyle`.
  */
 
 // Dua navigator terpisah, bukan satu yang di-generic-kan: daftar rute keduanya berbeda,
@@ -55,15 +55,10 @@ function useTabScreenOptions() {
     headerTitleStyle: { fontFamily: typography.sans, fontWeight: '800' as const, fontSize: 17 },
     headerTintColor: c.text,
     headerRight: () => <NotificationBell />,
-    // Chrome navigasi tak ikut skala font sistem: bilah tab & header tingginya tetap,
-    // dan label 10.5px yang membesar di perangkat berskala besar terpotong atau
-    // membungkus di kursi tab yang sempit. Teks isi layar tetap mengikuti sistem.
+    // Chrome navigasi tak ikut skala font sistem: tinggi headernya tetap, jadi judul
+    // yang membesar di perangkat berskala besar akan terpotong. Teks isi layar tetap
+    // mengikuti sistem. (Label bilah tab dijaga di `FloatingTabBar` dengan alasan sama.)
     headerTitleAllowFontScaling: false,
-    tabBarAllowFontScaling: false,
-    tabBarActiveTintColor: c.olive,
-    tabBarInactiveTintColor: c['text-dim'],
-    tabBarStyle: { backgroundColor: c.nav, borderTopColor: c.border },
-    tabBarLabelStyle: { fontFamily: typography.sans, fontWeight: '600' as const, fontSize: 10.5 },
   };
 }
 
@@ -72,35 +67,16 @@ const tabIcon =
   ({ color }: { color: string }) => <Icon name={name} size={23} color={color} />;
 
 /**
- * Tombol bulat terangkat di tengah bilah tab.
+ * Penanda kursi tombol tengah.
  *
- * Ia mengganti seluruh isi satu kursi tab, bukan menumpang di atasnya: tombol melayang
- * yang digambar di luar navigator akan menutupi isi layar di tiap tab, sedangkan yang
- * ini ikut menghilang bersama bilahnya saat papan ketik naik.
+ * `FloatingTabBar` menggambar sendiri tombol bulat terangkatnya; yang dibutuhkannya dari
+ * sini hanya tanda kursi mana yang bukan tab biasa, dan `tabBarButton` adalah satu-satunya
+ * opsi yang membawa arti itu. Nilainya tak pernah dipanggil.
  */
-function FabTabButton({ onPress, accessibilityLabel }: BottomTabBarButtonProps) {
-  const { mode } = useTheme();
-  const dark = mode === 'dark';
+const FAB_SEAT = () => null;
 
-  return (
-    <View className="w-[78px] items-center justify-start">
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel}
-        onPress={onPress}
-        className={`-mt-[30px] h-[60px] w-[60px] items-center justify-center rounded-full border-[5px] ${
-          dark ? 'bg-lime' : 'bg-olive'
-        }`}
-        // Garis tepinya sewarna bilah tab, bukan putih tetap: itu yang membuat
-        // lingkarannya terbaca sebagai terangkat, bukan sebagai tambalan putih di gelap.
-        style={[{ borderColor: colors[mode].nav }, shadows.pop]}
-      >
-        {/* 1d: di gelap tombolnya dibalik — isi lime, ikon gelap. */}
-        <Icon name="wallet" size={24} color={dark ? colors.light.text : colors[mode].lime} />
-      </Pressable>
-    </View>
-  );
-}
+/** Bilah tab buatan sendiri, dipasang lewat prop `tabBar` di kedua navigator. */
+const renderTabBar = (props: BottomTabBarProps) => <FloatingTabBar {...props} />;
 
 // --- Pelanggan ---
 
@@ -138,7 +114,7 @@ function JadwalPelanggan() {
 export function PelangganTabs() {
   const options = useTabScreenOptions();
   return (
-    <PelangganTab.Navigator screenOptions={options}>
+    <PelangganTab.Navigator screenOptions={options} tabBar={renderTabBar}>
       {/* Beranda tanpa header: kepala bermereknya sendiri yang memuat sapaan, nominal,
           dan lonceng — dua kepala bertumpuk hanya menyisakan setengah layar untuk isi. */}
       <PelangganTab.Screen
@@ -154,7 +130,7 @@ export function PelangganTabs() {
       <PelangganTab.Screen
         name="Bayar"
         component={FabSlot}
-        options={{ tabBarButton: FabTabButton, tabBarAccessibilityLabel: 'Bayar tagihan' }}
+        options={{ tabBarButton: FAB_SEAT, tabBarAccessibilityLabel: 'Bayar tagihan' }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
@@ -214,7 +190,7 @@ function TagihOperator() {
 export function OperatorTabs() {
   const options = useTabScreenOptions();
   return (
-    <OperatorTab.Navigator screenOptions={options}>
+    <OperatorTab.Navigator screenOptions={options} tabBar={renderTabBar}>
       <OperatorTab.Screen
         name="Beranda"
         component={BerandaOperator}
@@ -228,7 +204,7 @@ export function OperatorTabs() {
       <OperatorTab.Screen
         name="Catat"
         component={FabSlot}
-        options={{ tabBarButton: FabTabButton, tabBarAccessibilityLabel: 'Catat pembayaran' }}
+        options={{ tabBarButton: FAB_SEAT, tabBarAccessibilityLabel: 'Catat pembayaran' }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();

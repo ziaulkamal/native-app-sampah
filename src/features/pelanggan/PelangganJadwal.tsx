@@ -7,7 +7,7 @@ import { weekDates } from '@/lib/dates';
 import { WEEKDAYS } from '@/lib/labels';
 import { useApp } from '@/store/AppContext';
 import { useTheme } from '@/theme/ThemeProvider';
-import { colors } from '@/tokens/tokens';
+import { colors, semantic } from '@/tokens/tokens';
 import { LocationSwitcher } from './LocationSwitcher';
 import { useActiveLocation } from './useActiveLocation';
 
@@ -46,7 +46,11 @@ export function PelangganJadwal() {
 
   return (
     <ScreenScaffold>
-      <ScreenTitle eyebrow={zone?.name ?? 'Belum berzona'} title="Jadwal Angkut" />
+      <ScreenTitle
+        eyebrow={zone?.name ?? 'Belum berzona'}
+        title="Jadwal Angkut"
+        action={<TruckMark />}
+      />
 
       {/* Jadwal menempel pada zona, dan zona menempel pada titik — pelanggan bertitik
           banyak bisa punya dua jadwal berbeda, jadi pemilihnya ikut ke sini. */}
@@ -61,7 +65,7 @@ export function PelangganJadwal() {
           </Text>
         </View>
       ) : (
-        <View className="overflow-hidden rounded-xl2 bg-surface shadow-card">
+        <View className="overflow-hidden rounded-xl3 bg-surface shadow-card">
           {week.map((day, index) => (
             <DayRow
               key={day.iso}
@@ -69,8 +73,8 @@ export function PelangganJadwal() {
               // sehingga indeks yang sama menunjuk hari yang sama.
               name={WEEKDAYS[index].long}
               short={WEEKDAYS[index].short}
-              // `label` berbentuk `27 Jul`; kolom tanggal hanya perlu angkanya.
-              date={day.label.split(' ')[0]}
+              // `label` berbentuk `27 Jul` — utuh, karena baris ini yang memikul tanggalnya.
+              date={day.label}
               today={day.isToday}
               time={days.includes(WEEKDAYS[index].id) ? (zone?.schedule.timeWindow ?? '') : null}
               last={index === week.length - 1}
@@ -79,20 +83,57 @@ export function PelangganJadwal() {
         </View>
       )}
 
-      <Note zone={zone?.name ?? 'layanan'} />
+      {/* Tanpa latar, menempel di bawah kartunya: ini keterangan tentang kartu di atasnya,
+          bukan aturan yang berdiri sendiri seperti kotak jam di bawah. */}
+      <Text className="-mt-1 px-0.5 text-[11.5px] leading-relaxed text-dim">
+        Jadwal mengikuti zona {zone?.name ?? 'layanan'}. Perubahan hari angkut diumumkan dinas lewat
+        notifikasi.
+      </Text>
+
+      <TimeNote window={zone?.schedule.timeWindow} />
     </ScreenScaffold>
   );
 }
 
-/** Catatan kaki berlatar: aturan jadwal, bukan keterangan yang tercecer di bawah kartu. */
-function Note({ zone }: { zone: string }) {
+/** Lambang truk di kanan judul — penanda layar, bukan tombol. */
+function TruckMark() {
   const { mode } = useTheme();
+  // Di gelap olive (#A6B84B) dan lime (#C9E24A) hampir sewarna, jadi lingkarannya
+  // dibalik: latar redup, truknya yang olive.
+  const dark = mode === 'dark';
 
   return (
-    <View className="flex-row items-start gap-2.5 rounded-xl bg-surface2 px-3.5 py-3">
-      <Icon name="info" size={15} color={colors[mode].olive} />
-      <Text className="flex-1 text-[11.5px] leading-relaxed text-dim">
-        Jadwal mengikuti zona {zone}. Perubahan hari angkut diumumkan dinas lewat notifikasi.
+    <View
+      className={`h-[42px] w-[42px] flex-none items-center justify-center rounded-full ${
+        dark ? 'bg-pill' : 'bg-olive'
+      }`}
+    >
+      <Icon name="truck" size={20} color={dark ? colors.dark.olive : colors.light.lime} />
+    </View>
+  );
+}
+
+/**
+ * Kotak jam: satu hal yang harus dilakukan pelanggan, bukan keterangan tentang jadwal.
+ *
+ * Karena itu ia berlatar dan berikon sendiri, terpisah dari catatan zona di atasnya —
+ * dua paragraf abu-abu berturut-turut membuat yang kedua tak pernah dibaca.
+ */
+function TimeNote({ window }: { window?: string }) {
+  return (
+    <View className="flex-row items-center gap-3 rounded-xl2 bg-pill p-4">
+      <View className="h-[38px] w-[38px] flex-none items-center justify-center rounded-full bg-info/10">
+        <Icon name="info" size={18} color={semantic.info} />
+      </View>
+      <Text className="flex-1 text-[12px] leading-relaxed text-ink">
+        {window === undefined || window === '' ? (
+          'Keluarkan sampah sebelum truk lewat di hari angkut agar tidak terlewat.'
+        ) : (
+          <>
+            Keluarkan sampah sebelum jam angkut (<Text className="font-bold">{window}</Text>) agar
+            tidak terlewat.
+          </>
+        )}
       </Text>
     </View>
   );
@@ -122,44 +163,40 @@ function DayRow({
 
   return (
     <View
-      className={`flex-row items-center gap-3 px-4 py-[11px] ${
-        last ? '' : 'border-b border-line'
-      } ${today ? 'bg-surface2' : ''}`}
-      // Garis olive di tepi kiri: penanda hari ini yang tetap terlihat walau latar
-      // surface-2 nyaris sewarna kartu.
-      style={today ? { borderLeftWidth: 3, borderLeftColor: colors[mode].olive } : undefined}
+      className={`flex-row items-center gap-3 px-4 py-3.5 ${last ? '' : 'border-b border-line'} ${
+        today ? 'bg-pill' : ''
+      }`}
     >
-      {/* Kolom tanggal menggantikan tujuh ikon truk yang identik — pola yang sama
-          dengan ubin angkut di beranda, jadi pekan terbaca sekali pandang. */}
-      <View className={`w-9 items-center ${today ? 'rounded-[10px] bg-olive py-1' : ''}`}>
-        <Text
-          className={`text-[10.5px] font-bold uppercase ${
-            today ? 'text-white/80' : angkut ? 'text-olive' : 'text-dim'
-          }`}
-        >
-          {short}
-        </Text>
-        <Text
-          className={`text-[15px] font-extrabold ${
-            today ? 'text-white' : angkut ? 'text-ink' : 'text-dim'
-          }`}
-        >
-          {date}
+      {/* Ubin truk, bukan kolom tanggal: hari angkut dan hari kosong dibedakan lewat
+          nyala/padamnya ubin — terbaca sekali pandang sebelum satu kata pun dibaca. */}
+      <View
+        className={`h-[38px] w-[38px] flex-none items-center justify-center rounded-xl ${
+          angkut ? 'bg-olive/[.14]' : 'bg-pill'
+        }`}
+      >
+        <Icon name="truck" size={18} color={colors[mode][angkut ? 'olive' : 'text-dim']} />
+      </View>
+
+      <View className="min-w-0 flex-1">
+        <View className="flex-row items-baseline gap-2">
+          <Text
+            className={`text-[13.5px] ${angkut ? 'font-bold text-ink' : 'font-semibold text-dim'}`}
+          >
+            {name}
+          </Text>
+          {today && (
+            <Text className="font-sans text-[9.5px] font-bold uppercase tracking-widest text-olive">
+              hari ini
+            </Text>
+          )}
+        </View>
+        {/* Nama hari sendiri tak menyebut tanggalnya — "Rabu" di pekan mana. */}
+        <Text className="mt-1.5 text-[11px] text-dim">
+          {short} · {date}
         </Text>
       </View>
-      <View className="flex-1 flex-row items-center gap-2">
-        <Text className={`text-[13px] ${angkut ? 'font-bold text-ink' : 'font-semibold text-dim'}`}>
-          {name}
-        </Text>
-        {today ? (
-          <View className="rounded-full bg-olive px-2 py-0.5">
-            <Text className="text-[10.5px] font-bold uppercase text-white">hari ini</Text>
-          </View>
-        ) : (
-          angkut && <Icon name="truck" size={14} color={colors[mode].olive} />
-        )}
-      </View>
-      <Text className={angkut ? 'text-[12.5px] font-bold text-ink' : 'text-[11.5px] text-dim'}>
+
+      <Text className={`flex-none text-[12px] ${angkut ? 'font-semibold text-ink' : 'text-dim'}`}>
         {angkut ? (time === '' ? 'Ada angkut' : time) : 'Tidak ada angkut'}
       </Text>
     </View>

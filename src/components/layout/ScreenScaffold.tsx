@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 import { DataBanner } from '@/components/ui/DataBanner';
+import { useTabBarClearance } from '@/navigation/FloatingTabBar';
 import { useApp } from '@/store/AppContext';
 import { useTheme } from '@/theme/ThemeProvider';
 import { colors } from '@/tokens/tokens';
@@ -22,6 +23,7 @@ interface ScreenScaffoldProps {
 export function ScreenScaffold({ children, scroll = true }: ScreenScaffoldProps) {
   const { dataState, refresh } = useApp();
   const { mode } = useTheme();
+  const clearance = useTabBarClearance();
 
   const banner = <DataBanner />;
   if (!scroll) {
@@ -37,9 +39,10 @@ export function ScreenScaffold({ children, scroll = true }: ScreenScaffoldProps)
     <View className="flex-1 bg-bg">
       {banner}
       <ScrollView
-        // pb-14 (56dp): tombol tengah bilah tab menjulang 30dp di atas bilahnya —
-        // isi paling bawah butuh ruang selebihnya supaya tak tertimpa saat gulir mentok.
-        contentContainerClassName="p-4 gap-4 pb-14"
+        // Bilah tab mengambang di atas isi, tidak lagi memotong tinggi jendela — kaki
+        // daftar harus menyisakan ruangnya sendiri, dan besarnya ikut inset perangkat.
+        contentContainerClassName="p-4 gap-4"
+        contentContainerStyle={{ paddingBottom: clearance }}
         refreshControl={
           <RefreshControl
             refreshing={dataState === 'loading'}

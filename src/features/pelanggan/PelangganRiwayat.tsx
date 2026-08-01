@@ -42,13 +42,6 @@ const TINT_BG: Record<TxStatus, string> = {
   tertunggak: 'bg-danger/10',
 };
 
-/** Nominal hanya diwarnai kalau warnanya menambah keterangan; menunggu tetap tinta. */
-const AMOUNT_FG: Record<TxStatus, string> = {
-  selesai: 'text-success',
-  menunggu: 'text-ink',
-  tertunggak: 'text-danger',
-};
-
 /** Riwayat transaksi milik pelanggan yang login. */
 export function PelangganRiwayat() {
   const { transactions } = useApp();
@@ -66,16 +59,20 @@ export function PelangganRiwayat() {
       <SubScreenHeader eyebrow="Retribusi" title="Riwayat Transaksi" />
 
       <View className="flex-row gap-2.5">
-        <Summary label="Dibayar" value={formatRupiahShort(sum('selesai'))} dot={semantic.success} />
+        <Summary
+          label="Dibayar"
+          value={formatRupiahShort(sum('selesai'))}
+          tint={semantic.success}
+        />
         <Summary
           label="Menunggu"
           value={formatRupiahShort(sum('menunggu'))}
-          dot={semantic.warning}
+          tint={semantic.warning}
         />
         <Summary
           label="Tertunggak"
           value={formatRupiahShort(sum('tertunggak'))}
-          dot={semantic.danger}
+          tint={semantic.danger}
         />
       </View>
 
@@ -112,47 +109,62 @@ export function PelangganRiwayat() {
 }
 
 /**
- * Ubin ringkasan. Nominalnya sengaja tetap tinta: tiga angka berwarna berdampingan
- * ramai, dan warnanya sendiri tak terbaca oleh yang buta warna. Statusnya dipikul
- * titik + label di bawahnya.
+ * Ubin ringkasan. Nominalnya berwarna status, dan itu aman dibaca siapa pun: label di
+ * bawahnya mengucapkan status yang sama dengan kata, jadi warna hanya mempercepat
+ * pemindaian — bukan satu-satunya yang membedakan ketiganya.
  */
-function Summary({ label, value, dot }: { label: string; value: string; dot: string }) {
+function Summary({ label, value, tint }: { label: string; value: string; tint: string }) {
   return (
-    <View className="flex-1 rounded-xl2 bg-surface p-3 shadow-card">
-      <Text className="text-[16px] font-extrabold text-ink">{value}</Text>
-      <View className="mt-1 flex-row items-center gap-1.5">
-        <View className="h-[7px] w-[7px] rounded-full" style={{ backgroundColor: dot }} />
-        <Text className="text-[11px] text-dim">{label}</Text>
-      </View>
+    <View className="flex-1 rounded-2xl bg-surface px-3 py-3.5 shadow-card">
+      <Text
+        className="font-sans text-[15px] font-extrabold"
+        style={{ color: tint }}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+      >
+        {value}
+      </Text>
+      <Text className="mt-1.5 text-[10.5px] text-dim">{label}</Text>
     </View>
   );
 }
 
 function TxCard({ tx }: { tx: Transaction }) {
   const st = TX_STATUS[tx.status];
-  // Statusnya ikut di baris keterangan, jadi badge terpisah tinggal mengulang. Untuk
-  // yang selesai, cara & ref sudah menyebutkannya.
+  // Statusnya kini dipikul badge di kolom kanan, jadi baris keterangan tinggal
+  // menyebutkan yang belum diucapkan siapa pun: cara bayar, referensi, dan tanggal.
   const secondary =
     tx.status === 'selesai'
       ? `${tx.method ? PAY_METHOD[tx.method] : ''}${tx.ref ? ` · ${tx.ref}` : ''} · ${tx.date}`
-      : `Jatuh tempo ${tx.date} · ${st.label}`;
+      : `Jatuh tempo ${tx.date}`;
 
   return (
-    <View className="flex-row items-center gap-3 rounded-xl2 bg-surface p-3.5 shadow-card">
+    <View className="flex-row items-center gap-3 rounded-xl2 bg-surface p-4 shadow-card">
       <View
-        className={`h-[42px] w-[42px] items-center justify-center rounded-[12px] ${TINT_BG[tx.status]}`}
+        className={`h-[42px] w-[42px] flex-none items-center justify-center rounded-[14px] ${TINT_BG[tx.status]}`}
       >
         <Icon name={ICON[tx.status]} size={20} color={TINT[tx.status]} />
       </View>
-      <View className="flex-1">
+      <View className="min-w-0 flex-1">
         <Text className="text-[14px] font-bold text-ink">Retribusi {tx.period}</Text>
-        <Text className="mt-0.5 text-[11.5px] text-dim" numberOfLines={1}>
+        <Text className="mt-1.5 text-[11px] leading-snug text-dim" numberOfLines={1}>
           {secondary}
         </Text>
       </View>
-      <Text className={`text-[14.5px] font-extrabold ${AMOUNT_FG[tx.status]}`}>
-        {formatRupiah(tx.amount)}
-      </Text>
+      {/* Nominal kembali bertinta: warnanya sudah dipikul badge tepat di bawahnya, dan
+          dua penanda warna bertumpuk membuat angkanya terbaca seperti peringatan. */}
+      <View className="flex-none items-end gap-2">
+        <Text className="text-[14.5px] font-extrabold text-ink">{formatRupiah(tx.amount)}</Text>
+        <View className={`rounded-full px-2.5 py-1.5 ${TINT_BG[tx.status]}`}>
+          <Text
+            className="font-sans text-[9.5px] font-bold uppercase tracking-wide"
+            style={{ color: TINT[tx.status] }}
+          >
+            {st.label}
+          </Text>
+        </View>
+      </View>
     </View>
   );
 }

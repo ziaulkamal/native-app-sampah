@@ -47,7 +47,7 @@ export function OperatorHome() {
             }
             greeting={greetingNow()}
             name={op?.name ?? '—'}
-            right={<NotificationBell onHero />}
+            right={<NotificationBell place="hero" />}
           />
           <HeroAmount
             label="Kas di tangan · belum disetor"

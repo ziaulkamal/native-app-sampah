@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DataBanner } from '@/components/ui/DataBanner';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { useVerticalRhythm } from '@/lib/rhythm';
+import { useTabBarClearance } from '@/navigation/FloatingTabBar';
 import { useApp } from '@/store/AppContext';
 import { useTheme } from '@/theme/ThemeProvider';
 import { colors, typography } from '@/tokens/tokens';
@@ -20,14 +21,15 @@ export function HeroScaffold({ hero, children }: { hero: ReactNode; children: Re
   const { dataState, refresh } = useApp();
   const { mode } = useTheme();
   const rhythm = useVerticalRhythm();
+  const clearance = useTabBarClearance();
 
   return (
     <View className="flex-1 bg-bg">
       <DataBanner />
       <ScrollView
-        // 56dp, bukan 32: tombol tengah bilah tab menjulang 30dp di atas bilahnya,
-        // jadi kartu terakhir butuh ruang selebihnya agar tak tertimpa saat gulir mentok.
-        contentContainerClassName="pb-14"
+        // Bilah tab mengambang di atas isi, tidak lagi memotong tinggi jendela — kartu
+        // terakhir harus menyisakan ruangnya sendiri, dan besarnya ikut inset perangkat.
+        contentContainerStyle={{ paddingBottom: clearance }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl

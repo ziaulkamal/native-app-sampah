@@ -1,9 +1,12 @@
 import { useState } from 'react';
+import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { Pressable, Text, View } from 'react-native';
+import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Modal } from '@/components/ui/Modal';
 import { formatRupiah } from '@/lib/format';
+import type { PelangganTagihanParams } from '@/navigation/types';
 import { useApp } from '@/store/AppContext';
 import { useTheme } from '@/theme/ThemeProvider';
 import { colors, semantic } from '@/tokens/tokens';
@@ -21,6 +24,7 @@ const METHOD_LABEL: Record<Method, string> = {
 export function PaymentSheet({ bill, onClose }: { bill: Bill; onClose: () => void }) {
   const { bankAccounts, payBill } = useApp();
   const { mode } = useTheme();
+  const nav = useNavigation<NavigationProp<PelangganTagihanParams>>();
   const primary = bankAccounts.find((b) => b.primary) ?? bankAccounts[0];
   const [method, setMethod] = useState<Method>('transfer');
   const [bankId, setBankId] = useState(primary?.id ?? '');
@@ -38,6 +42,13 @@ export function PaymentSheet({ bill, onClose }: { bill: Bill; onClose: () => voi
   const bank = bankAccounts.find((b) => b.id === bankId);
   const total = bill.amount + bill.penalty;
 
+  // Setelah bukti ditutup, yang dicari orang adalah "sudah tercatat belum?" — dan itu ada
+  // di riwayat transaksi, bukan di daftar tagihan yang barusan ditinggalkan.
+  const finish = () => {
+    onClose();
+    nav.navigate('PelangganRiwayat');
+  };
+
   return (
     <Modal
       open
@@ -45,7 +56,7 @@ export function PaymentSheet({ bill, onClose }: { bill: Bill; onClose: () => voi
       title={done ? 'Bukti Pembayaran' : 'Bayar Retribusi'}
       footer={
         done ? (
-          <Button label="Selesai" size="sm" onPress={onClose} />
+          <Button label="Selesai" size="sm" shape="pill" onPress={finish} />
         ) : (
           <>
             <Button label="Batal" variant="ghost" size="sm" onPress={onClose} />
@@ -158,24 +169,37 @@ function Receipt({ bill, method, bankLabel }: { bill: Bill; method: Method; bank
       <View className="h-16 w-16 items-center justify-center rounded-full bg-success/10">
         <Icon name="check" size={32} color={semantic.success} />
       </View>
-      <Text className="text-[18px] font-extrabold text-ink">Pembayaran terkirim</Text>
-      <Text className="text-center text-[13px] text-dim">
+      <Text className="text-[20px] font-extrabold text-ink">Pembayaran terkirim</Text>
+      <Text className="text-center text-[13px] leading-relaxed text-dim">
         Pembayaran retribusi {bill.period} terkirim dan menunggu verifikasi dinas.
       </Text>
-      <View className="mt-2 w-full gap-2.5 rounded-xl bg-pill p-4">
+      <View className="mt-3 w-full gap-3 rounded-2xl bg-pill p-4">
         <ReceiptRow label="Nominal" value={formatRupiah(bill.amount + bill.penalty)} />
         <ReceiptRow label="Metode" value={methodLabel} />
-        <ReceiptRow label="Status" value="Menunggu verifikasi" />
+        {/* Nomornya diterbitkan server saat pembayaran diverifikasi, bukan saat dikirim —
+            jadi yang ditulis di sini kapan ia muncul, bukan nomor karangan klien. */}
+        <ReceiptRow label="No. referensi" value="Terbit setelah diverifikasi" mono />
+        <View className="flex-row items-center justify-between gap-3">
+          <Text className="text-[12px] text-dim">Status</Text>
+          <Badge label="Menunggu verifikasi" tone="warning" />
+        </View>
       </View>
     </View>
   );
 }
 
-function ReceiptRow({ label, value }: { label: string; value: string }) {
+function ReceiptRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <View className="flex-row items-center justify-between">
-      <Text className="text-[12px] text-dim">{label}</Text>
-      <Text className="text-[12.5px] font-bold text-ink">{value}</Text>
+    <View className="flex-row items-center justify-between gap-3">
+      <Text className="flex-none text-[12px] text-dim">{label}</Text>
+      <Text
+        className={`flex-1 text-right ${
+          mono === true ? 'font-mono text-[12px] font-medium' : 'text-[12.5px] font-bold'
+        } text-ink`}
+        numberOfLines={1}
+      >
+        {value}
+      </Text>
     </View>
   );
 }

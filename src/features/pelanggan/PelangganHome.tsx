@@ -1,127 +1,125 @@
-import { useState } from 'react';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  greetingNow,
-  HeroAmount,
-  HeroGreeting,
-  HeroPill,
-  HeroScaffold,
-} from '@/components/layout/HeroScaffold';
 import { ScreenScaffold } from '@/components/layout/ScreenScaffold';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
-import { Modal } from '@/components/ui/Modal';
-import { SectionHeader } from '@/components/ui/SectionHeader';
 import { NotificationBell } from '@/features/notifikasi/NotificationBell';
 import { HomeMenu, type HomeMenuItem } from '@/features/shared/HomeMenu';
-import { weekDates } from '@/lib/dates';
 import { formatRupiah } from '@/lib/format';
 import {
+  BILL_BADGE,
   CUSTOMER_STATUS,
   golonganName,
-  LOCATION_KIND,
   SCHEME_LABEL,
   SCHEME_SUFFIX,
-  WEEKDAYS,
 } from '@/lib/labels';
 import type { PelangganTabParams } from '@/navigation/types';
 import { useApp } from '@/store/AppContext';
 import { useTheme } from '@/theme/ThemeProvider';
-import { colors, shadows } from '@/tokens/tokens';
-import type { Bill, Customer, Weekday } from '@/types';
+import { colors, semantic, shadows, typography } from '@/tokens/tokens';
+import type { Bill } from '@/types';
+import { LocationSwitcher } from './LocationSwitcher';
 import { useActiveLocation } from './useActiveLocation';
 
 type Nav = NavigationProp<PelangganTabParams>;
 
-/** Beranda Pelanggan: nominal tertunggak, pintu-pintu layanan, jadwal, ringkasan setahun. */
+/**
+ * Beranda Pelanggan: satu tagihan yang harus dibayar sekarang, pintu-pintu layanan,
+ * dan ringkasan langganan.
+ *
+ * Datar, tanpa kepala bermerek: yang paling penting di layar ini adalah kartu tagihan,
+ * dan kepala olive selebar layar di atasnya membuat dua blok berwarna beradu — kartunya
+ * kalah dan tombol bayarnya terdorong ke bawah lipatan.
+ */
 export function PelangganHome() {
   const { zones, tariffs, dataState, session } = useApp();
   const { active: customer, locations, billsForActive, select } = useActiveLocation();
   const nav = useNavigation<Nav>();
-  const { mode } = useTheme();
-  const [switching, setSwitching] = useState(false);
+  const insets = useSafeAreaInsets();
 
   if (customer === undefined) return <NoProfile loading={dataState === 'loading'} />;
 
   const zone = zones.find((z) => z.id === customer.zoneId);
   const golongan = tariffs.find((t) => t.id === customer.category);
   const status = CUSTOMER_STATUS[customer.status];
-  const unpaid = billsForActive.filter((b) => b.status !== 'lunas');
-  const outstanding = unpaid.reduce((sum, b) => sum + b.amount + b.penalty, 0);
-  const paidThisYear = sumPaidThisYear(billsForActive);
+  // Belum lunas diurutkan dari yang TERLAMA: itu urutan pelunasan yang ditegakkan server,
+  // jadi yang pertama di daftar inilah satu-satunya yang bisa dibayar sekarang.
+  const unpaid = billsForActive
+    .filter((b) => b.status !== 'lunas')
+    .sort((a, b) => a.periodStart.localeCompare(b.periodStart));
+  const due = unpaid[0];
 
-  // Hanya pintu yang tak ada di bilah bawah. Bayar, Tagihan, Jadwal, dan Profil sudah
-  // jadi tab — mengulangnya di sini hanya memperbanyak yang harus dipindai.
   const menu: HomeMenuItem[] = [
+    {
+      label: 'Bayar',
+      icon: 'wallet',
+      onPress: () => nav.navigate('Tagihan', { screen: 'PelangganTagihan', params: { pay: true } }),
+    },
     {
       label: 'Riwayat',
       icon: 'bars',
       onPress: () => nav.navigate('Tagihan', { screen: 'PelangganRiwayat' }),
     },
     {
+      label: 'Jadwal',
+      icon: 'calendar',
+      onPress: () => nav.navigate('Jadwal', { screen: 'PelangganJadwal' }),
+    },
+    {
       label: 'Aduan',
       icon: 'bell',
       onPress: () => nav.navigate('Beranda', { screen: 'PelangganAduan' }),
     },
-    {
-      label: 'Titik',
-      icon: 'pin',
-      onPress: () => nav.navigate('Beranda', { screen: 'TambahLokasi' }),
-    },
-    { label: 'Akun', icon: 'settings', onPress: () => nav.navigate('Profil', { screen: 'Akun' }) },
   ];
 
   return (
-    <HeroScaffold
-      hero={
-        <>
-          <HeroGreeting
-            avatar={<Avatar name={customer.name} src={session?.avatarUrl ?? undefined} size={44} />}
-            greeting={greetingNow()}
-            name={customer.name}
-            right={<NotificationBell onHero />}
-          />
-          <HeroAmount
-            label={outstanding > 0 ? 'Total belum dibayar' : 'Tak ada tunggakan'}
-            amount={formatRupiah(outstanding).replace('Rp', '').trim()}
-          />
-          {/* Kapsulnya sekaligus pintu ganti titik — chevron baru muncul kalau memang
-              ada titik lain untuk dipilih. */}
-          <HeroPill
-            icon="pin"
-            label={`Titik: ${customer.name} · ${zone?.name ?? 'Belum berzona'}`}
-            onPress={locations.length > 1 ? () => setSwitching(true) : undefined}
-          />
-        </>
-      }
-    >
-      <HomeMenu items={menu} />
-
-      <WeekStrip days={zone?.schedule.days ?? []} />
-
-      <View className="flex-row rounded-xl2 bg-surface p-4" style={shadows.card}>
-        <SplitHalf
-          label={`Dibayar ${new Date().getFullYear()}`}
-          value={formatRupiah(paidThisYear)}
-        />
-        <View className="w-px bg-line" />
-        <SplitHalf
-          label="Tunggakan"
-          value={formatRupiah(outstanding)}
-          danger={outstanding > 0}
-          note={unpaid.length > 0 ? `${unpaid.length} tagihan` : 'Lunas semua'}
-        />
+    <ScreenScaffold>
+      {/* Tab Beranda berjalan `headerShown: false` — tak ada header bawaan yang memikul
+          inset, jadi baris identitas ini memikulnya sendiri. */}
+      <View className="flex-row items-center gap-3" style={{ paddingTop: insets.top + 6 }}>
+        <Avatar name={customer.name} src={session?.avatarUrl ?? undefined} size={46} />
+        <View className="min-w-0 flex-1">
+          <Text
+            maxFontSizeMultiplier={typography.maxScale}
+            className="font-sans text-[10.5px] font-semibold uppercase tracking-widest text-olive"
+            numberOfLines={1}
+          >
+            {zone?.name ?? 'Belum berzona'}
+          </Text>
+          <Text className="mt-1.5 text-[19px] font-extrabold text-ink" numberOfLines={1}>
+            {customer.name}
+          </Text>
+        </View>
+        <NotificationBell place="screen" />
       </View>
 
-      {/* Judul dan kartunya satu grup: header melekat 12dp ke isinya, sementara jarak
-          antar seksi diatur `sectionGap` scaffold. */}
+      {/* Ganti titik langsung di berandanya, bukan lewat sheet: seluruh angka di layar ini
+          milik satu titik, jadi tombol pindahnya harus terlihat bersama angkanya. */}
+      <LocationSwitcher locations={locations} activeId={customer.id} onSelect={select} />
+
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => nav.navigate('Beranda', { screen: 'TambahLokasi' })}
+        // Bergaris putus-putus, bukan kartu berisi: ini pintu menambah sesuatu yang belum
+        // ada, bukan baris data — bentuknya harus beda dari kapsul titik di atasnya.
+        className="min-h-[44px] flex-row items-center justify-center gap-2 rounded-[14px] border-[1.5px] border-dashed border-ph"
+        style={({ pressed }) => (pressed ? { opacity: 0.6 } : undefined)}
+      >
+        <PlusIcon />
+        <Text className="text-[12.5px] font-semibold text-olive">Ajukan titik layanan baru</Text>
+      </Pressable>
+
+      {due === undefined ? <AllPaidCard /> : <DueCard bill={due} others={unpaid.length - 1} />}
+
+      <HomeMenu items={menu} />
+
       <View className="gap-3">
-        <SectionHeader title="Langganan" />
-        <View className="gap-3 rounded-xl2 bg-surface p-4" style={shadows.card}>
+        <Text className="text-[15px] font-bold text-ink">Langganan</Text>
+        <View className="gap-3.5 rounded-xl2 bg-surface p-[18px]" style={shadows.card}>
           <Row label="Golongan" value={golonganName(tariffs, customer.category)} />
           <Row
             label="Tarif"
@@ -134,165 +132,140 @@ export function PelangganHome() {
           </View>
         </View>
       </View>
-
-      {/* Berlatar supaya terbaca sebagai aturan resmi, bukan keterangan yang tercecer.
-          Tanpa margin bawah: jarak ekor halaman milik `pb-14` scaffold. */}
-      <View className="flex-row items-start gap-2.5 rounded-xl bg-surface2 px-3.5 py-3">
-        <Icon name="info" size={15} color={colors[mode].olive} />
-        <Text className="flex-1 text-[11.5px] leading-relaxed text-dim">
-          Tagihan dilunasi berurutan dari yang terlama — itu aturan yang ditegakkan server.
-        </Text>
-      </View>
-
-      <Modal open={switching} onClose={() => setSwitching(false)} title="Ganti titik layanan">
-        {locations.map((loc) => (
-          <LocationRow
-            key={loc.id}
-            location={loc}
-            active={loc.id === customer.id}
-            onPress={() => {
-              select(loc.id);
-              setSwitching(false);
-            }}
-          />
-        ))}
-      </Modal>
-    </HeroScaffold>
+    </ScreenScaffold>
   );
 }
 
-/** Satu titik layanan di sheet pemilih; yang aktif ditandai centang, bukan hanya warna. */
-function LocationRow({
-  location,
-  active,
-  onPress,
-}: {
-  location: Customer;
-  active: boolean;
-  onPress: () => void;
-}) {
+/**
+ * Kartu tagihan yang jatuh tempo — satu-satunya blok berwarna di layar ini.
+ *
+ * Yang ditampilkan tagihan TERLAMA saja, bukan jumlah seluruh tunggakan: itu angka yang
+ * akan benar-benar dibayar kalau tombolnya ditekan, dan server menolak pelunasan yang
+ * melompatinya. Sisanya disebut sebagai jumlah, bukan sebagai rupiah, supaya tak ada dua
+ * nominal bersaing di satu kartu.
+ */
+function DueCard({ bill, others }: { bill: Bill; others: number }) {
+  const nav = useNavigation<Nav>();
   const { mode } = useTheme();
+  const badge = BILL_BADGE[bill.status];
+  const dark = mode === 'dark';
 
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-      onPress={onPress}
-      className={`flex-row items-center gap-3 rounded-xl2 border px-4 py-3 ${
-        active ? 'border-olive bg-pill' : 'border-line bg-surface'
-      }`}
-      style={({ pressed }) => (pressed ? { opacity: 0.7 } : undefined)}
-    >
-      <Icon name="pin" size={18} color={colors[mode][active ? 'olive' : 'text-dim']} />
-      <View className="flex-1">
-        <Text className="text-[13px] font-bold text-ink" numberOfLines={1}>
-          {location.label}
+  const body = (
+    <>
+      {/* Bulatan hias di sudut. `overflow-hidden` induknya yang memotongnya jadi busur. */}
+      <View className="absolute -right-10 -top-[46px] h-[150px] w-[150px] rounded-full bg-lime/10" />
+      <View className="flex-row items-center justify-between gap-2.5">
+        <Text
+          maxFontSizeMultiplier={typography.maxScale}
+          className={`flex-1 font-sans text-[11px] font-semibold uppercase tracking-wide ${
+            dark ? 'text-dim' : 'text-white/80'
+          }`}
+          numberOfLines={1}
+        >
+          Tagihan {bill.period}
         </Text>
-        <Text className="mt-0.5 text-[11px] text-dim">{LOCATION_KIND[location.kind]}</Text>
+        {/* Bukan `Badge` bertona: di atas olive, latar hijau/kuning transparannya lenyap.
+            Di sini statusnya dibaca dari teks, kontrasnya dari kaca putih. */}
+        <View className={`rounded-full px-2.5 py-1.5 ${dark ? 'bg-pill' : 'bg-white/20'}`}>
+          <Text
+            maxFontSizeMultiplier={typography.maxScale}
+            className={`font-sans text-[9.5px] font-bold uppercase tracking-wide ${
+              dark ? 'text-ink' : 'text-white'
+            }`}
+          >
+            {badge.label}
+          </Text>
+        </View>
       </View>
-      {active && <Icon name="check" size={18} color={colors[mode].olive} />}
-    </Pressable>
-  );
-}
 
-/** Empat hari terdekat pekan ini; hari angkut diberi warna, hari ini diberi ring lime. */
-function WeekStrip({ days }: { days: Weekday[] }) {
-  const { mode } = useTheme();
-  const week = weekDates();
-  // Selalu empat ubin: kalau hari ini sudah Jumat, yang ditampilkan empat hari terakhir
-  // pekan — menggeser jendela lebih berguna daripada memotongnya jadi satu ubin.
-  const start = Math.min(
-    Math.max(
-      week.findIndex((d) => d.isToday),
-      0,
-    ),
-    week.length - 4,
-  );
-
-  return (
-    // Judulnya `SectionHeader` seperti seksi lain, bukan teks 14px sendiri: satu sistem
-    // judul seksi di seluruh beranda.
-    <View className="gap-3">
-      <SectionHeader title="Angkut pekan ini" />
-      <View className="flex-row gap-2.5">
-        {week.slice(start, start + 4).map((day, i) => {
-          const index = start + i;
-          const angkut = days.includes(WEEKDAYS[index].id);
-          // Empat ubin yang identik tak menyebut hari ini yang mana; ring lime menyebutnya
-          // tanpa menambah baris teks.
-          const ring = day.isToday ? { borderWidth: 2, borderColor: colors[mode].lime } : undefined;
-          const accent =
-            day.isToday && angkut ? 'text-lime' : angkut ? 'text-white/75' : 'text-dim';
-          return (
-            <View
-              key={day.iso}
-              className={`flex-1 items-center rounded-[14px] py-3 ${
-                angkut ? 'bg-olive' : 'bg-surface'
-              }`}
-              style={[angkut ? undefined : shadows.card, ring]}
-            >
-              <Text className={`text-[10.5px] font-bold uppercase ${accent}`}>
-                {WEEKDAYS[index].short}
-              </Text>
-              <Text
-                className={`mt-1 text-[15px] font-extrabold ${angkut ? 'text-white' : 'text-ink'}`}
-              >
-                {day.label.split(' ')[0]}
-              </Text>
-              <Text className={`mt-0.5 text-[10.5px] font-semibold ${accent}`}>
-                {angkut ? 'Angkut' : '—'}
-              </Text>
-            </View>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
-/** Separuh kartu ringkasan retribusi. */
-function SplitHalf({
-  label,
-  value,
-  note,
-  danger,
-}: {
-  label: string;
-  value: string;
-  note?: string;
-  danger?: boolean;
-}) {
-  return (
-    <View className="flex-1 px-2">
-      <Text className="text-[11px] font-semibold uppercase tracking-wide text-dim">{label}</Text>
       {/* Menyusut, bukan ter-ellipsis: digit rupiah yang terpotong salah baca. */}
       <Text
-        className={`mt-1 text-[17px] font-extrabold ${danger === true ? 'text-danger' : 'text-ink'}`}
+        maxFontSizeMultiplier={typography.maxScale}
+        className={`mt-2.5 text-[30px] font-extrabold leading-none ${dark ? 'text-ink' : 'text-white'}`}
         numberOfLines={1}
         adjustsFontSizeToFit
         minimumFontScale={0.75}
       >
-        {value}
+        {formatRupiah(bill.amount + bill.penalty)}
       </Text>
-      {note !== undefined && <Text className="mt-0.5 text-[11px] text-dim">{note}</Text>}
+      <Text className={`mt-1.5 text-[12px] leading-snug ${dark ? 'text-dim' : 'text-white/75'}`}>
+        Jatuh tempo {bill.dueDate}
+        {bill.penalty > 0 && ` · termasuk denda ${formatRupiah(bill.penalty)}`}
+        {others > 0 && `\n${others} tagihan lain menyusul setelah ini lunas`}
+      </Text>
+
+      {/* Tombolnya putih di atas olive, bukan olive di atas olive: satu-satunya aksi
+          utama layar ini harus jadi bidang paling terang di kartunya. */}
+      <Pressable
+        accessibilityRole="button"
+        onPress={() =>
+          nav.navigate('Tagihan', { screen: 'PelangganTagihan', params: { pay: true } })
+        }
+        className={`mt-[18px] min-h-[52px] flex-row items-center justify-center gap-2.5 rounded-full ${
+          dark ? 'bg-lime' : 'bg-surface'
+        }`}
+        style={({ pressed }) => (pressed ? { opacity: 0.85 } : undefined)}
+      >
+        <Icon name="wallet" size={18} color={dark ? colors.light.text : colors.light.olive} />
+        <Text
+          className="font-sans text-[14px] font-bold"
+          style={{ color: dark ? colors.light.text : colors.light.olive }}
+        >
+          Bayar Sekarang
+        </Text>
+      </Pressable>
+    </>
+  );
+
+  // Di gelap kartunya tidak bergradien terang: olive #5A6A1E gagal 3:1 di atas latar
+  // gelap, jadi kontrasnya datang dari permukaan sedikit lebih terang + garis tepi.
+  if (dark) {
+    return (
+      <View className="overflow-hidden rounded-xl3 border border-line bg-surface2 p-5">{body}</View>
+    );
+  }
+
+  return (
+    <LinearGradient
+      colors={[colors.light['olive-deep'], colors.light.olive]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0.55, y: 1 }}
+      className="overflow-hidden rounded-xl3 p-5"
+      style={shadows.pop}
+    >
+      {body}
+    </LinearGradient>
+  );
+}
+
+/** Ganti kartu tagihan saat tak ada yang tertunggak — bukan ruang kosong. */
+function AllPaidCard() {
+  return (
+    <View className="flex-row items-center gap-3.5 rounded-xl3 bg-surface p-5" style={shadows.card}>
+      <View className="h-[46px] w-[46px] flex-none items-center justify-center rounded-full bg-success/10">
+        <Icon name="check" size={24} color={semantic.success} />
+      </View>
+      <View className="flex-1">
+        <Text className="text-[15px] font-bold text-ink">Semua tagihan lunas</Text>
+        <Text className="mt-1.5 text-[12px] text-dim">
+          Tagihan berikutnya terbit di awal periode.
+        </Text>
+      </View>
     </View>
   );
 }
 
-/** Total yang sudah dibayar sepanjang tahun berjalan, dari periode tagihannya. */
-function sumPaidThisYear(bills: Bill[]): number {
-  const year = String(new Date().getFullYear());
-  return bills
-    .filter((b) => b.status === 'lunas' && b.periodStart.startsWith(year))
-    .reduce((sum, b) => sum + b.amount + b.penalty, 0);
+/** Tanda tambah pada tombol titik baru; olive mengikuti tema. */
+function PlusIcon() {
+  const { mode } = useTheme();
+  return <Icon name="plus" size={16} color={colors[mode].olive} />;
 }
 
 /**
  * Pendaftar yang belum diverifikasi belum punya titik layanan — jelaskan, jangan kosongkan.
  *
- * Satu-satunya keadaan beranda tanpa kepala: tab Beranda berjalan `headerShown: false`
- * dan di sini `HeroScaffold` tak ikut tergambar, jadi insetnya dipikul sendiri —
- * tanpa itu isinya menyelinap ke bawah jam status bar.
+ * Insetnya dipikul sendiri dengan alasan yang sama seperti baris identitas di atas:
+ * tab Beranda berjalan tanpa header bawaan.
  */
 function NoProfile({ loading }: { loading: boolean }) {
   const insets = useSafeAreaInsets();
@@ -314,7 +287,7 @@ function NoProfile({ loading }: { loading: boolean }) {
   );
 }
 
-/** Baris label–nilai untuk kartu ringkasan. */
+/** Baris label–nilai untuk kartu langganan. */
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <View className="flex-row items-center justify-between gap-3">
